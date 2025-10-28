@@ -14,7 +14,10 @@ PRIVATE
   SnM_Marker.cpp
   SnM_ME.cpp
   SnM_Misc.cpp
+  SnM_ModernPlaylistUI.cpp
   SnM_Notes.cpp
+  SnM_PlaylistIcons.cpp
+  SnM_PlaylistTheme.cpp
   SnM_Project.cpp
   SnM_RegionPlaylist.cpp
   SnM_Resources.cpp
