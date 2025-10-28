@@ -133,8 +133,47 @@ void PlaylistTheme::LoadDefaultLightTheme()
 
 void PlaylistTheme::LoadCustomThemeFromINI()
 {
-    // TODO: Implement reading custom colors from reaper.ini
-    // This will be implemented in a later task
+    // Helper function to read color from INI
+    auto readColor = [](const char* section, const char* key, int defaultValue) -> int {
+        char str[32];
+        GetPrivateProfileString(section, key, "", str, sizeof(str), get_ini_file());
+
+        if (str[0] == '\0') {
+            return defaultValue; // Key not found, use default
+        }
+
+        // Parse hex color (format: 0xRRGGBB or RRGGBB)
+        unsigned int rgb = 0;
+        if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+            sscanf(str + 2, "%x", &rgb);
+        } else {
+            sscanf(str, "%x", &rgb);
+        }
+
+        // Convert to LICE_RGBA format
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        return LICE_RGBA(r, g, b, 255);
+    };
+
+    // Determine which section to read from based on theme
+    const char* section = m_isDark ? "sws_playlist_theme_dark" : "sws_playlist_theme_light";
+
+    // Read custom colors from INI, falling back to current defaults if not found
+    m_colors.background = readColor(section, "background", m_colors.background);
+    m_colors.text = readColor(section, "text", m_colors.text);
+    m_colors.currentItemBg = readColor(section, "current_bg", m_colors.currentItemBg);
+    m_colors.currentItemText = readColor(section, "current_text", m_colors.currentItemText);
+    m_colors.nextItemBg = readColor(section, "next_bg", m_colors.nextItemBg);
+    m_colors.nextItemText = readColor(section, "next_text", m_colors.nextItemText);
+    m_colors.selectedBg = readColor(section, "selected_bg", m_colors.selectedBg);
+    m_colors.selectedText = readColor(section, "selected_text", m_colors.selectedText);
+    m_colors.hoverBg = readColor(section, "hover_bg", m_colors.hoverBg);
+    m_colors.border = readColor(section, "border", m_colors.border);
+    m_colors.progressBar = readColor(section, "progress_bar", m_colors.progressBar);
+    m_colors.warningRed = readColor(section, "warning_red", m_colors.warningRed);
+    m_colors.accentBlue = readColor(section, "accent_blue", m_colors.accentBlue);
 }
 
 void PlaylistTheme::InitializeFonts()
@@ -142,14 +181,61 @@ void PlaylistTheme::InitializeFonts()
     // Clean up existing fonts
     CleanupFonts();
 
-    // TODO: Create fonts with proper sizes
-    // This will be implemented in a later task when we integrate with LICE font system
+    // Create fonts with proper sizes
+    // Font sizes: 12pt (itemName), 14pt (itemNumber), 11pt (itemTime), 24pt (monitorLarge), 20pt (monitorMedium)
+
+    // Helper lambda to create a font
+    auto createFont = [](int height) -> LICE_CachedFont* {
+        LICE_CachedFont* font = new LICE_CachedFont();
+        LOGFONT lf = {
+            height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH,
+#ifdef _WIN32
+            "Segoe UI"
+#else
+            "Arial"
+#endif
+        };
+
+        font->SetFromHFont(
+            CreateFontIndirect(&lf),
+            LICE_FONT_FLAG_OWNS_HFONT | (g_SNM_ClearType ? LICE_FONT_FLAG_FORCE_NATIVE : 0)
+        );
+        font->SetBkMode(TRANSPARENT);
+        return font;
+    };
+
+    // Create fonts with specified sizes
+    m_fonts.itemName = createFont(12);       // 12pt
+    m_fonts.itemNumber = createFont(14);     // 14pt
+    m_fonts.itemTime = createFont(11);       // 11pt
+    m_fonts.monitorLarge = createFont(24);   // 24pt
+    m_fonts.monitorMedium = createFont(20);  // 20pt
 }
 
 void PlaylistTheme::CleanupFonts()
 {
-    // TODO: Properly delete fonts
-    // This will be implemented in a later task
+    // Delete fonts if they exist
+    if (m_fonts.itemName) {
+        delete m_fonts.itemName;
+        m_fonts.itemName = NULL;
+    }
+    if (m_fonts.itemNumber) {
+        delete m_fonts.itemNumber;
+        m_fonts.itemNumber = NULL;
+    }
+    if (m_fonts.itemTime) {
+        delete m_fonts.itemTime;
+        m_fonts.itemTime = NULL;
+    }
+    if (m_fonts.monitorLarge) {
+        delete m_fonts.monitorLarge;
+        m_fonts.monitorLarge = NULL;
+    }
+    if (m_fonts.monitorMedium) {
+        delete m_fonts.monitorMedium;
+        m_fonts.monitorMedium = NULL;
+    }
 }
 
 int PlaylistTheme::GetHoverColor(int baseColor) const

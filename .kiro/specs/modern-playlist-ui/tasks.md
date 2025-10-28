@@ -6,26 +6,26 @@
   - Create forward declarations and include guards
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 2. Implement PlaylistTheme system
-- [ ] 2.1 Create PlaylistTheme class with color and font structures
+- [x] 2. Implement PlaylistTheme system
+- [x] 2.1 Create PlaylistTheme class with color and font structures
   - Define Colors struct with all required color fields
   - Define Fonts struct with LICE_CachedFont pointers
   - Implement singleton pattern for theme access
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 2.2 Implement theme detection and loading
+- [x] 2.2 Implement theme detection and loading
   - Detect REAPER theme (dark/light) using existing SNM functions
   - Load appropriate color scheme based on theme
   - Initialize fonts with correct sizes (12pt, 14pt, 11pt, 24pt, 20pt)
   - _Requirements: 5.1, 5.2, 4.1, 4.2, 4.3_
 
-- [ ] 2.3 Add color calculation utilities
+- [x] 2.3 Add color calculation utilities
   - Implement hover color calculation (lighter/darker variants)
   - Implement contrast ratio validation (4.5:1, 3:1, 7:1)
   - Add color blending functions for smooth transitions
   - _Requirements: 1.4, 1.5, 4.4, 5.3_
 
-- [ ] 2.4 Implement theme customization from INI file
+- [x] 2.4 Implement theme customization from INI file
   - Read custom colors from reaper.ini [sws_playlist_theme_dark] section
   - Read custom colors from reaper.ini [sws_playlist_theme_light] section
   - Provide fallback to default colors if custom not found
