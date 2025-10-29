@@ -34,6 +34,7 @@
 #include "SnM_Project.h"
 #include "SnM_RegionPlaylist.h"
 #include "SnM_ModernPlaylistUI.h"
+#include "SnM_ModernPlaylistView.h"
 #include "SnM_Util.h"
 #include "../Prompt.h"
 #include "WDL/xsrand.h"
@@ -136,7 +137,7 @@ int g_oldRepeatState = -1;
 
 
 // _plId: -1 for the displayed/edited playlist
-RegionPlaylist* GetPlaylist(int _plId = -1) {
+RegionPlaylist* GetPlaylist(int _plId) {
 	if (_plId < 0) _plId = g_pls.Get()->m_editId;
 	return g_pls.Get()->Get(_plId);
 }
@@ -592,6 +593,7 @@ void GetMonitoringInfo(WDL_FastString* _curNum, WDL_FastString* _cur,
 // (use the S&M one instead - already registered via SNM_WindowManager::Init())
 RegionPlaylistWnd::RegionPlaylistWnd()
 	: SWS_DockWnd(IDD_SNM_RGNPLAYLIST, __LOCALIZE("Region Playlist","sws_DLG_165"), "")
+	, m_mons(NULL)
 {
 	m_id.Set(RGNPL_WND_ID);
 	// must call SWS_DockWnd::Init() to restore parameters and open the window if necessary
@@ -600,8 +602,12 @@ RegionPlaylistWnd::RegionPlaylistWnd()
 
 RegionPlaylistWnd::~RegionPlaylistWnd()
 {
-	m_mons.RemoveAllChildren(false);
-	m_mons.SetRealParent(NULL);
+	if (m_mons) {
+		m_mons->RemoveAllChildren(false);
+		m_mons->SetRealParent(NULL);
+		delete m_mons;
+		m_mons = NULL;
+	}
 	m_btnsAddDel.RemoveAllChildren(false);
 	m_btnsAddDel.SetRealParent(NULL);
 }
@@ -667,13 +673,18 @@ void RegionPlaylistWnd::OnInitDlg()
 	m_monPl.SetAlign(DT_LEFT, DT_CENTER);
 	m_parentVwnd.AddChild(&m_monPl);
 
+	// Create ModernMonitoringView instance
+	if (!m_mons) {
+		m_mons = new ModernMonitoringView();
+	}
+
 	for (int i=0; i<5; i++)
 		m_txtMon[i].SetID(TXTID_MON0+i);
-	m_mons.AddMonitors(&m_txtMon[0], &m_txtMon[1], &m_txtMon[2], &m_txtMon[3], &m_txtMon[4]);
-	m_mons.SetID(WNDID_MONITORS);
-	m_mons.SetFontName(g_rgnplBigFontName);
-	m_mons.SetTitles(__LOCALIZE("CURRENT","sws_DLG_165"), " ", __LOCALIZE("NEXT","sws_DLG_165"), " ");  // " " trick to get a lane
-	m_parentVwnd.AddChild(&m_mons);
+	m_mons->AddMonitors(&m_txtMon[0], &m_txtMon[1], &m_txtMon[2], &m_txtMon[3], &m_txtMon[4]);
+	m_mons->SetID(WNDID_MONITORS);
+	m_mons->SetFontName(g_rgnplBigFontName);
+	m_mons->SetTitles(__LOCALIZE("CURRENT","sws_DLG_165"), " ", __LOCALIZE("NEXT","sws_DLG_165"), " ");  // " " trick to get a lane
+	m_parentVwnd.AddChild(m_mons);
 
 	Update();
 
@@ -684,8 +695,8 @@ void RegionPlaylistWnd::OnDestroy()
 {
 	UnregisterToMarkerRegionUpdates(&m_mkrRgnListener);
 	m_cbPlaylist.Empty();
-	m_mons.RemoveAllChildren(false);
-	m_mons.SetRealParent(NULL);
+	m_mons->RemoveAllChildren(false);
+	m_mons->SetRealParent(NULL);
 	m_btnsAddDel.RemoveAllChildren(false);
 	m_btnsAddDel.SetRealParent(NULL);
 }
@@ -744,7 +755,7 @@ void RegionPlaylistWnd::Update(int _flags, WDL_FastString* _curNum, WDL_FastStri
 
 				// Only update if we're within the current region
 				if (elapsed >= 0.0 && elapsed <= regionDuration) {
-					m_mons.SetProgress(elapsed, regionDuration);
+					m_mons->SetProgress(elapsed, regionDuration);
 				}
 			}
 		}
@@ -780,7 +791,7 @@ void RegionPlaylistWnd::UpdateMonitoring(WDL_FastString* _curNum, WDL_FastString
 	pl.Set("");
 	if (g_playPlaylist>=0)
 		pl.SetFormatted(16, "#%d", g_playPlaylist+1);
-	m_mons.SetText(0, pl.Get(), 0, 16);
+	m_mons->SetText(0, pl.Get(), 0, 16);
 #endif
 
 	WDL_FastString *cur=_cur, *curNum=_curNum, *next=_next, *nextNum=_nextNum;
@@ -791,29 +802,29 @@ void RegionPlaylistWnd::UpdateMonitoring(WDL_FastString* _curNum, WDL_FastString
 	if (!_cur||!_curNum||!_next||!_nextNum)
 		GetMonitoringInfo(curNum, cur, nextNum, next);
 
-	m_mons.SetText(1, curNum->Get(), g_playPlaylist<0 ? 0 : g_unsync ? SNM_COL_RED_MONITOR : 0);
-	m_mons.SetText(2, cur->Get(), g_playPlaylist<0 ? 0 : g_unsync ? SNM_COL_RED_MONITOR : 0);
-	m_mons.SetText(3, nextNum->Get(), 0, 153);
-	m_mons.SetText(4, next->Get(), 0, 153);
+	m_mons->SetText(1, curNum->Get(), g_playPlaylist<0 ? 0 : g_unsync ? SNM_COL_RED_MONITOR : 0);
+	m_mons->SetText(2, cur->Get(), g_playPlaylist<0 ? 0 : g_unsync ? SNM_COL_RED_MONITOR : 0);
+	m_mons->SetText(3, nextNum->Get(), 0, 153);
+	m_mons->SetText(4, next->Get(), 0, 153);
 
 	// Pass monitoring data to ModernMonitoringView
 	// This ensures updates happen at <= 100ms intervals during playback
 	if (g_playPlaylist >= 0) {
 		// Set playlist info
 		if (RegionPlaylist* curpl = GetPlaylist(g_playPlaylist)) {
-			m_mons.SetPlaylistInfo(curpl->m_name.Get(), g_playPlaylist + 1);
+			m_mons->SetPlaylistInfo(curpl->m_name.Get(), g_playPlaylist + 1);
 		}
 
 		// Set current region info
 		if (curNum->GetLength() > 0 && cur->GetLength() > 0) {
 			int currentNumber = atoi(curNum->Get());
-			m_mons.SetCurrentRegion(cur->Get(), currentNumber);
+			m_mons->SetCurrentRegion(cur->Get(), currentNumber);
 		}
 
 		// Set next region info
 		if (nextNum->GetLength() > 0 && next->GetLength() > 0) {
 			int nextNumber = atoi(nextNum->Get());
-			m_mons.SetNextRegion(next->Get(), nextNumber);
+			m_mons->SetNextRegion(next->Get(), nextNumber);
 		}
 
 		// Update progress information
@@ -825,7 +836,7 @@ void RegionPlaylistWnd::UpdateMonitoring(WDL_FastString* _curNum, WDL_FastString
 
 			// Only update if we're within the current region
 			if (elapsed >= 0.0 && elapsed <= regionDuration) {
-				m_mons.SetProgress(elapsed, regionDuration);
+				m_mons->SetProgress(elapsed, regionDuration);
 			}
 		}
 	}
@@ -1170,8 +1181,8 @@ void RegionPlaylistWnd::DrawControls(LICE_IBitmap* _bm, const RECT* _r, int* _to
 
 						r.top += int(SNM_GUI_TOP_H/2+0.5);
 						r.bottom -= int(SNM_GUI_TOP_H/2);
-						m_mons.SetPosition(&r);
-						m_mons.SetVisible(true);
+						m_mons->SetPosition(&r);
+						m_mons->SetVisible(true);
 
 						r = *_r;
 

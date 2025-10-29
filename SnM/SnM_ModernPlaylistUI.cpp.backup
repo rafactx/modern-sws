@@ -157,10 +157,6 @@
 
 #include "stdafx.h"
 #include "SnM_ModernPlaylistUI.h"
-#include "SnM_ModernPlaylistView.h"
-#include "SnM_RegionPlaylist.h"
-#include "SnM_Marker.h"
-#include "SnM.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions for LICE font rendering
@@ -554,7 +550,7 @@ void ModernPlaylistItemRenderer::DrawRegionNumber(LICE_IBitmap* bm, const RECT& 
     int textY = r.top + (r.bottom - r.top) / 2;
 
     // Draw the region number with 14pt font (itemNumber)
-    DrawTextWithFont(bm, NUMBER_X, textY, numStr, colors.text, fonts.itemNumber);
+    LICE_DrawText(bm, NUMBER_X, textY, numStr, colors.text, 1.0f, LICE_BLIT_MODE_COPY, fonts.itemNumber);
 }
 
 void ModernPlaylistItemRenderer::DrawRegionName(LICE_IBitmap* bm, const RECT& r, const char* name, const PlaylistTheme* theme)
@@ -617,13 +613,13 @@ void ModernPlaylistItemRenderer::DrawRegionName(LICE_IBitmap* bm, const RECT& r,
 
     // Measure text width
     RECT textRect = {0, 0, 0, 0};
-    MeasureTextWithFont(displayName.Get(), &textRect.right, &textRect.bottom, fonts.itemName);
+    LICE_MeasureText(displayName.Get(), &textRect.right, &textRect.bottom, fonts.itemName);
 
     // If text is too wide, truncate with ellipsis
     if (textRect.right > AVAILABLE_WIDTH) {
         const char* ellipsis = "...";
         RECT ellipsisRect = {0, 0, 0, 0};
-        MeasureTextWithFont(ellipsis, &ellipsisRect.right, &ellipsisRect.bottom, fonts.itemName);
+        LICE_MeasureText(ellipsis, &ellipsisRect.right, &ellipsisRect.bottom, fonts.itemName);
 
         // Binary search for the right length
         int len = displayName.GetLength();
@@ -634,7 +630,7 @@ void ModernPlaylistItemRenderer::DrawRegionName(LICE_IBitmap* bm, const RECT& r,
 
             textRect.right = 0;
             textRect.bottom = 0;
-            MeasureTextWithFont(displayName.Get(), &textRect.right, &textRect.bottom, fonts.itemName);
+            LICE_MeasureText(displayName.Get(), &textRect.right, &textRect.bottom, fonts.itemName);
 
             // Remove ellipsis for next iteration
             displayName.SetLen(len);
@@ -646,7 +642,7 @@ void ModernPlaylistItemRenderer::DrawRegionName(LICE_IBitmap* bm, const RECT& r,
     }
 
     // Draw the region name with 12pt font (itemName)
-    DrawTextWithFont(bm, NAME_X, textY, displayName.Get(), colors.text, fonts.itemName);
+    LICE_DrawText(bm, NAME_X, textY, displayName.Get(), colors.text, 1.0f, LICE_BLIT_MODE_COPY, fonts.itemName);
 }
 
 void ModernPlaylistItemRenderer::DrawTimeInfo(LICE_IBitmap* bm, const RECT& r, const ItemData& data, const PlaylistTheme* theme)
@@ -677,7 +673,7 @@ void ModernPlaylistItemRenderer::DrawTimeInfo(LICE_IBitmap* bm, const RECT& r, c
 
     // OPTIMIZATION: Measure once and position
     RECT textRect = {0, 0, 0, 0};
-    MeasureTextWithFont(timeStr, &textRect.right, &textRect.bottom, fonts.itemTime);
+    LICE_MeasureText(timeStr, &textRect.right, &textRect.bottom, fonts.itemTime);
 
     // OPTIMIZATION: Pre-calculate position
     const int RIGHT_PADDING = 8;
@@ -686,7 +682,7 @@ void ModernPlaylistItemRenderer::DrawTimeInfo(LICE_IBitmap* bm, const RECT& r, c
     const int textY = r.top + ((r.bottom - r.top) >> 1); // Bit shift for faster division
 
     // Draw the time with 11pt font (itemTime)
-    DrawTextWithFont(bm, timeX, textY, timeStr, colors.text, fonts.itemTime);
+    LICE_DrawText(bm, timeX, textY, timeStr, colors.text, 1.0f, LICE_BLIT_MODE_COPY, fonts.itemTime);
 }
 
 void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, int count, bool infinite, const PlaylistTheme* theme)
@@ -762,7 +758,7 @@ void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, 
 
             // OPTIMIZATION: Measure text once
             RECT textRect = {0, 0, 0, 0};
-            MeasureTextWithFont(countStr, &textRect.right, &textRect.bottom, fonts.itemTime);
+            LICE_MeasureText(countStr, &textRect.right, &textRect.bottom, fonts.itemTime);
 
             // OPTIMIZATION: Calculate centered position using bit shifts
             const int textX = badgeX + ((BADGE_SIZE - textRect.right) >> 1);
@@ -770,7 +766,7 @@ void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, 
 
             // OPTIMIZATION: Use constant white color for contrast
             const int textColor = LICE_RGBA(255, 255, 255, 255);
-            DrawTextWithFont(bm, textX, textY, countStr, textColor, fonts.itemTime);
+            LICE_DrawText(bm, textX, textY, countStr, textColor, 1.0f, LICE_BLIT_MODE_COPY, fonts.itemTime);
         }
     }
 }
@@ -911,14 +907,11 @@ ModernRegionPlaylistView::ModernRegionPlaylistView(HWND hwndList, HWND hwndEdit)
 
     // Enable double buffering on the ListView control to eliminate flickering
     // This uses the built-in Windows ListView double buffering support
-#ifdef _WIN32
     if (m_hwndList) {
         DWORD exStyle = ListView_GetExtendedListViewStyle(m_hwndList);
         exStyle |= LVS_EX_DOUBLEBUFFER;
         ListView_SetExtendedListViewStyle(m_hwndList, exStyle);
     }
-#endif
-    // On macOS/Linux, SWELL handles double buffering automatically
 }
 
 ModernRegionPlaylistView::~ModernRegionPlaylistView()
@@ -1141,7 +1134,7 @@ void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* i
     #endif
 
         // TASK 11.2: Validate item data
-        RgnPlaylistItem* plItem = (RgnPlaylistItem*)item;
+        RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
         if (!plItem || !plItem->IsValidIem()) {
             #ifdef _DEBUG
             OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Invalid playlist item, using fallback\n");
@@ -1315,7 +1308,7 @@ ModernPlaylistItemRenderer::ItemVisualState ModernRegionPlaylistView::GetItemSta
     }
 
     // Cast to RgnPlaylistItem
-    RgnPlaylistItem* plItem = (RgnPlaylistItem*)item;
+    RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
 
     // TASK 11.1: Validate cast result
     if (!plItem) {
@@ -1612,7 +1605,7 @@ void ModernRegionPlaylistView::OnBeginDrag(SWS_ListItem* item)
     }
 
     // TASK 11.1: Validate item cast
-    RgnPlaylistItem* plItem = (RgnPlaylistItem*)item;
+    RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
     if (!plItem) {
         #ifdef _DEBUG
         OutputDebugString("ModernRegionPlaylistView::OnBeginDrag - Failed to cast item\n");
@@ -2214,14 +2207,15 @@ void ModernMonitoringView::DrawProgressBar(LICE_IBitmap* bm, const RECT& r)
 
         // Measure text to center it
         RECT textRect = {0, 0, 0, 0};
-        MeasureTextWithFont(progressText, &textRect.right, &textRect.bottom, m_theme->GetFonts().itemTime);
+        LICE_MeasureText(progressText, &textRect.right, &textRect.bottom, m_theme->GetFonts().itemTime);
 
         // Center text in the progress bar area
         int textX = barRect.left + (barWidth - textRect.right) / 2;
         int textY = barRect.top + (barHeight - textRect.bottom) / 2;
 
         // Draw text with high contrast
-        DrawTextWithFont(bm, textX, textY, progressText, colors.text, m_theme->GetFonts().itemTime);
+        LICE_DrawText(bm, textX, textY, progressText, colors.text,
+                     1.0f, LICE_BLIT_MODE_COPY, m_theme->GetFonts().itemTime);
     }
 }
 
@@ -2260,7 +2254,7 @@ void ModernMonitoringView::DrawLargeText(LICE_IBitmap* bm, const RECT& r, const 
 
     // Measure text to center it
     RECT textRect = {0, 0, 0, 0};
-    MeasureTextWithFont(text, &textRect.right, &textRect.bottom, font);
+    LICE_MeasureText(text, &textRect.right, &textRect.bottom, font);
 
     // Calculate centered position
     int textX = r.left + (r.right - r.left - textRect.right) / 2;
@@ -2271,7 +2265,7 @@ void ModernMonitoringView::DrawLargeText(LICE_IBitmap* bm, const RECT& r, const 
     if (textY < r.top) textY = r.top;
 
     // Draw the text with high contrast color
-    DrawTextWithFont(bm, textX, textY, text, color, font);
+    LICE_DrawText(bm, textX, textY, text, color, 1.0f, LICE_BLIT_MODE_COPY, font);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

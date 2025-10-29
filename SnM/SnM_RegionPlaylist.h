@@ -30,10 +30,11 @@
 #ifndef _SNM_REGIONPLAYLIST_H_
 #define _SNM_REGIONPLAYLIST_H_
 
+#include "SnM.h"
 #include "SnM_Marker.h"
 #include "SnM_VWnd.h"
 
-// Forward declarations for modern UI components
+// Forward declaration to avoid circular dependency
 class ModernMonitoringView;
 
 
@@ -125,7 +126,7 @@ protected:
 	SNM_ToolbarButton m_btnCrop;
 	WDL_VirtualIconButton m_btnLock, m_btnPlay, m_btnStop, m_btnRepeat;
 	SNM_DynSizedText m_monPl;
-	ModernMonitoringView m_mons;
+	ModernMonitoringView* m_mons;  // Pointer to avoid circular dependency
 	SNM_DynSizedText m_txtMon[5];
 };
 
@@ -167,6 +168,9 @@ void AppendPasteCropPlaylist(RegionPlaylist* _playlist, const AppendPasteCropPla
 void AppendPasteCropPlaylist(COMMAND_T*);
 
 void RegionPlaylistSetTrackListChange();
+
+// Get playlist by ID (-1 for currently edited playlist)
+RegionPlaylist* GetPlaylist(int _plId = -1);
 
 int RegionPlaylistInit();
 void RegionPlaylistExit();
