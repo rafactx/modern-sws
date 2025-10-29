@@ -167,16 +167,34 @@ protected:
     // Custom rendering
     void OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* item, const RECT& itemRect);
 
+    // Drag and drop visual feedback
+    void OnBeginDrag(SWS_ListItem* item);
+    void OnDrag();
+    void OnEndDrag();
+
 private:
     void UpdateTheme();
     ModernPlaylistItemRenderer::ItemVisualState GetItemState(SWS_ListItem* item, int index);
     ModernPlaylistItemRenderer::ItemData GetItemData(RgnPlaylistItem* item);
+
+    // Drag and drop helpers
+    void DrawDragGhost(LICE_IBitmap* drawbm);
+    void ClearDragGhost();
+    int GetDropTargetIndex();
 
     ModernPlaylistItemRenderer m_renderer;
     PlaylistTheme* m_theme;
     int m_itemHeight;
     int m_hoveredItem;
     bool m_modernRenderingEnabled;
+
+    // Drag and drop state
+    bool m_isDragging;
+    int m_draggedItemIndex;
+    int m_dropTargetIndex;
+    LICE_IBitmap* m_dragGhostBitmap;
+    POINT m_dragStartPos;
+    POINT m_dragCurrentPos;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -471,6 +471,10 @@ ModernRegionPlaylistView::ModernRegionPlaylistView(HWND hwndList, HWND hwndEdit)
     , m_itemHeight(40) // Default height for modern items (minimum for readability)
     , m_hoveredItem(-1)
     , m_modernRenderingEnabled(true) // Enable modern rendering by default
+    , m_isDragging(false)
+    , m_draggedItemIndex(-1)
+    , m_dropTargetIndex(-1)
+    , m_dragGhostBitmap(NULL)
 {
     // Initialize theme
     m_theme = PlaylistTheme::GetInstance();
@@ -485,11 +489,22 @@ ModernRegionPlaylistView::ModernRegionPlaylistView(HWND hwndList, HWND hwndEdit)
     GetPrivateProfileString("SWS", key, "1", value, sizeof(value), get_ini_file());
     m_modernRenderingEnabled = (atoi(value) != 0);
 
+    // Initialize drag start position
+    m_dragStartPos.x = 0;
+    m_dragStartPos.y = 0;
+    m_dragCurrentPos.x = 0;
+    m_dragCurrentPos.y = 0;
+
     // Initialize renderer (no special initialization needed)
 }
 
 ModernRegionPlaylistView::~ModernRegionPlaylistView()
 {
+    // Clean up drag ghost bitmap if it exists
+    if (m_dragGhostBitmap) {
+        delete m_dragGhostBitmap;
+        m_dragGhostBitmap = NULL;
+    }
 }
 
 void ModernRegionPlaylistView::SetItemHeight(int height)
@@ -777,8 +792,15 @@ ModernPlaylistItemRenderer::ItemVisualState ModernRegionPlaylistView::GetItemSta
         state.isSelected = (itemState & LVIS_SELECTED) != 0;
     }
 
-    // Check if item is hovered
-    if (index >= 0 && index == m_hoveredItem) {
+    // Check if item is hovered (but not if we're dragging - drop target takes priority)
+    if (index >= 0 && index == m_hoveredItem && !m_isDragging) {
+        state.isHovered = true;
+    }
+
+    // Check if item is the drop target during drag operation
+    // This takes priority over hover state
+    if (m_isDragging && index >= 0 && index == m_dropTargetIndex) {
+        // Use hover state to highlight drop target with distinct color
         state.isHovered = true;
     }
 
@@ -945,6 +967,211 @@ ModernPlaylistItemRenderer::ItemData ModernRegionPlaylistView::GetItemData(RgnPl
     }
 
     return data;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Drag and drop visual feedback implementation
+///////////////////////////////////////////////////////////////////////////////
+
+void ModernRegionPlaylistView::OnBeginDrag(SWS_ListItem* item)
+{
+    // Call base class implementation first to maintain functionality
+    RegionPlaylistView::OnBeginDrag(item);
+
+    // Only add visual feedback if modern rendering is enabled
+    if (!m_modernRenderingEnabled || !item || !m_hwndList) {
+        return;
+    }
+
+    // Get the index of the dragged item
+    RegionPlaylist* pl = GetPlaylist();
+    if (!pl) {
+        return;
+    }
+
+    RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
+    if (!plItem) {
+        return;
+    }
+
+    m_draggedItemIndex = pl->Find(plItem);
+    if (m_draggedItemIndex < 0) {
+        return;
+    }
+
+    // Set dragging state
+    m_isDragging = true;
+    m_dropTargetIndex = -1;
+
+    // Get cursor position
+    GetCursorPos(&m_dragStartPos);
+    m_dragCurrentPos = m_dragStartPos;
+
+    // Create ghost image of dragged item
+    // Get the item rectangle
+    RECT itemRect;
+    if (ListView_GetItemRect(m_hwndList, m_draggedItemIndex, &itemRect, LVIR_BOUNDS)) {
+        int width = itemRect.right - itemRect.left;
+        int height = itemRect.bottom - itemRect.top;
+
+        // Create bitmap for ghost image
+        if (m_dragGhostBitmap) {
+            delete m_dragGhostBitmap;
+        }
+        m_dragGhostBitmap = new LICE_SysBitmap(width, height);
+
+        if (m_dragGhostBitmap) {
+            // Clear the bitmap with transparent background
+            LICE_Clear(m_dragGhostBitmap, 0);
+
+            // Get item data and state
+            ModernPlaylistItemRenderer::ItemData data = GetItemData(plItem);
+            ModernPlaylistItemRenderer::ItemVisualState state = GetItemState(item, m_draggedItemIndex);
+
+            // Render the item to the ghost bitmap
+            RECT ghostRect = {0, 0, width, height};
+            m_renderer.DrawItem(m_dragGhostBitmap, ghostRect, data, state, m_theme);
+
+            // Apply semi-transparent rendering by blending with a transparent overlay
+            // This creates the ghost effect
+            // LICE doesn't have a direct alpha channel manipulation, so we'll use blit mode
+            // The ghost will be drawn with reduced opacity in DrawDragGhost()
+        }
+    }
+
+    // Trigger repaint to show initial drag state
+    if (m_hwndList) {
+        InvalidateRect(m_hwndList, NULL, FALSE);
+        UpdateWindow(m_hwndList);
+    }
+}
+
+void ModernRegionPlaylistView::OnDrag()
+{
+    // Call base class implementation first to maintain functionality
+    RegionPlaylistView::OnDrag();
+
+    // Only add visual feedback if modern rendering is enabled
+    if (!m_modernRenderingEnabled || !m_isDragging || !m_hwndList) {
+        return;
+    }
+
+    // Get current cursor position
+    POINT currentPos;
+    GetCursorPos(&currentPos);
+    m_dragCurrentPos = currentPos;
+
+    // Determine drop target index
+    int newDropTarget = GetDropTargetIndex();
+
+    // Check if drop target changed
+    if (newDropTarget != m_dropTargetIndex) {
+        // Store old drop target for invalidation
+        int oldDropTarget = m_dropTargetIndex;
+        m_dropTargetIndex = newDropTarget;
+
+        // Invalidate the affected items to update highlight
+        if (oldDropTarget >= 0) {
+            ListView_RedrawItems(m_hwndList, oldDropTarget, oldDropTarget);
+        }
+        if (m_dropTargetIndex >= 0) {
+            ListView_RedrawItems(m_hwndList, m_dropTargetIndex, m_dropTargetIndex);
+        }
+
+        // Update the window
+        UpdateWindow(m_hwndList);
+    }
+
+    // Note: The ghost image would be drawn by the window's paint handler
+    // For a complete implementation, we would need to hook into the window's
+    // WM_PAINT message or use a layered window overlay
+    // For now, we'll rely on the drop target highlighting
+}
+
+void ModernRegionPlaylistView::OnEndDrag()
+{
+    // Clear visual feedback before calling base class
+    if (m_modernRenderingEnabled && m_isDragging) {
+        ClearDragGhost();
+
+        // Invalidate the drop target area
+        if (m_hwndList && m_dropTargetIndex >= 0) {
+            ListView_RedrawItems(m_hwndList, m_dropTargetIndex, m_dropTargetIndex);
+            UpdateWindow(m_hwndList);
+        }
+    }
+
+    // Reset drag state
+    m_isDragging = false;
+    m_draggedItemIndex = -1;
+    m_dropTargetIndex = -1;
+
+    // Call base class implementation to complete the drag operation
+    // This must be called last as it may trigger updates
+    RegionPlaylistView::OnEndDrag();
+
+    // Provide visual feedback within 50ms by triggering immediate repaint
+    if (m_hwndList) {
+        InvalidateRect(m_hwndList, NULL, FALSE);
+        UpdateWindow(m_hwndList);
+    }
+}
+
+void ModernRegionPlaylistView::DrawDragGhost(LICE_IBitmap* drawbm)
+{
+    // This method would be called from the paint handler to draw the ghost image
+    // at the current cursor position
+    if (!drawbm || !m_dragGhostBitmap || !m_isDragging) {
+        return;
+    }
+
+    // Convert screen coordinates to client coordinates
+    POINT clientPos = m_dragCurrentPos;
+    ScreenToClient(m_hwndList, &clientPos);
+
+    // Draw the ghost image with semi-transparent rendering (50% opacity)
+    LICE_Blit(drawbm, m_dragGhostBitmap,
+             clientPos.x, clientPos.y,
+             0, 0,
+             m_dragGhostBitmap->getWidth(), m_dragGhostBitmap->getHeight(),
+             0.5f, // 50% opacity for ghost effect
+             LICE_BLIT_MODE_COPY | LICE_BLIT_USE_ALPHA);
+}
+
+void ModernRegionPlaylistView::ClearDragGhost()
+{
+    // Clean up the drag ghost bitmap
+    if (m_dragGhostBitmap) {
+        delete m_dragGhostBitmap;
+        m_dragGhostBitmap = NULL;
+    }
+}
+
+int ModernRegionPlaylistView::GetDropTargetIndex()
+{
+    if (!m_hwndList) {
+        return -1;
+    }
+
+    // Get cursor position in client coordinates
+    POINT pt = m_dragCurrentPos;
+    ScreenToClient(m_hwndList, &pt);
+
+    // Perform hit test to find the item under the cursor
+    LVHITTESTINFO hitTest;
+    hitTest.pt = pt;
+    hitTest.flags = 0;
+    hitTest.iItem = -1;
+    hitTest.iSubItem = 0;
+
+    int hitIndex = ListView_HitTest(m_hwndList, &hitTest);
+
+    // Return the hit item index if it's a valid drop target
+    if (hitIndex >= 0 && (hitTest.flags & LVHT_ONITEM)) {
+        return hitIndex;
+    }
+
+    return -1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

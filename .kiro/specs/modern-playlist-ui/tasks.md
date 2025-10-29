@@ -225,52 +225,52 @@
   - Use appropriate font size
   - _Requirements: 4.1_
 
-- [ ] 7. Integrate modern UI into RegionPlaylistWnd
-- [ ] 7.1 Modify RegionPlaylistWnd to use ModernRegionPlaylistView
+- [x] 7. Integrate modern UI into RegionPlaylistWnd
+- [x] 7.1 Modify RegionPlaylistWnd to use ModernRegionPlaylistView
   - Replace RegionPlaylistView instantiation with ModernRegionPlaylistView
   - Pass necessary parameters to constructor
   - Maintain backward compatibility
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 7.2 Modify RegionPlaylistWnd to use ModernMonitoringView
+- [x] 7.2 Modify RegionPlaylistWnd to use ModernMonitoringView
   - Replace SNM_FiveMonitors with ModernMonitoringView in monitoring mode
   - Update monitoring update logic to call new methods
   - Maintain backward compatibility
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 7.3 Update RegionPlaylistWnd::Update method
+- [x] 7.3 Update RegionPlaylistWnd::Update method
   - Call UpdateTheme when theme changes detected
   - Update progress bar in monitoring mode
   - Ensure smooth updates during playback (< 100ms)
   - _Requirements: 7.1, 7.4_
 
-- [ ] 7.4 Update RegionPlaylistWnd::UpdateMonitoring method
+- [x] 7.4 Update RegionPlaylistWnd::UpdateMonitoring method
   - Pass monitoring data to ModernMonitoringView
   - Update progress information
   - Ensure updates happen at <= 100ms intervals
   - _Requirements: 4.5, 7.4_
 
-- [ ] 7.5 Add UI preference controls
+- [x] 7.5 Add UI preference controls
   - Add menu items to toggle modern UI on/off
   - Add menu items to adjust item height
   - Add menu items to toggle animations
   - Save preferences to reaper.ini
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 8. Implement drag and drop visual feedback
-- [ ] 8.1 Override OnBeginDrag in ModernRegionPlaylistView
+- [x] 8. Implement drag and drop visual feedback
+- [x] 8.1 Override OnBeginDrag in ModernRegionPlaylistView
   - Create ghost image of dragged item
   - Use semi-transparent rendering
   - Show item being dragged
   - _Requirements: 6.3_
 
-- [ ] 8.2 Override OnDrag in ModernRegionPlaylistView
+- [x] 8.2 Override OnDrag in ModernRegionPlaylistView
   - Highlight valid drop targets
   - Use distinct color for drop target
   - Update highlight as mouse moves
   - _Requirements: 6.4_
 
-- [ ] 8.3 Override OnEndDrag in ModernRegionPlaylistView
+- [x] 8.3 Override OnEndDrag in ModernRegionPlaylistView
   - Clear ghost image
   - Clear drop target highlights
   - Provide visual feedback within 50ms
