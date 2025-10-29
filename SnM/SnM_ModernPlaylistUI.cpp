@@ -955,9 +955,24 @@ ModernMonitoringView::ModernMonitoringView()
     : SNM_FiveMonitors()
     , m_currentNumber(0)
     , m_nextNumber(0)
+    , m_playlistNumber(0)
     , m_theme(NULL)
 {
+    // Initialize theme
     m_theme = PlaylistTheme::GetInstance();
+    if (m_theme) {
+        m_theme->UpdateTheme();
+    }
+
+    // Initialize strings with default values
+    m_currentName.Set("");
+    m_nextName.Set("");
+    m_playlistName.Set("");
+
+    // Initialize progress info (already initialized by struct constructor)
+    m_progress.current = 0.0;
+    m_progress.total = 0.0;
+    m_progress.percentage = 0.0;
 }
 
 ModernMonitoringView::~ModernMonitoringView()
@@ -966,57 +981,348 @@ ModernMonitoringView::~ModernMonitoringView()
 
 void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origin_y, RECT* cliprect, int rscale)
 {
-    if (!drawbm) {
+    if (!drawbm || !m_theme) {
+        // Fallback to base class if no theme
+        SNM_FiveMonitors::OnPaint(drawbm, origin_x, origin_y, cliprect, rscale);
         return;
     }
 
-    // TODO: Implement modern monitoring view painting
-    // This will be implemented in later tasks
+    // Get colors with high contrast (7:1 ratio minimum as per requirements)
+    const PlaylistTheme::Colors& colors = m_theme->GetColors();
+    const PlaylistTheme::Fonts& fonts = m_theme->GetFonts();
 
-    // For now, call base class
-    SNM_FiveMonitors::OnPaint(drawbm, origin_x, origin_y, cliprect, rscale);
+    // Get the drawing area
+    RECT r = m_position;
+    r.left += origin_x;
+    r.top += origin_y;
+    r.right += origin_x;
+    r.bottom += origin_y;
+
+    // Apply clipping if provided
+    if (cliprect) {
+        if (r.left < cliprect->left) r.left = cliprect->left;
+        if (r.top < cliprect->top) r.top = cliprect->top;
+        if (r.right > cliprect->right) r.right = cliprect->right;
+        if (r.bottom > cliprect->bottom) r.bottom = cliprect->bottom;
+    }
+
+    // Validate rectangle
+    if (r.right <= r.left || r.bottom <= r.top) {
+        return;
+    }
+
+    // Clear background with high contrast background color
+    LICE_FillRect(drawbm, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                  colors.background, 1.0f, LICE_BLIT_MODE_COPY);
+
+    // Calculate layout areas
+    int totalHeight = r.bottom - r.top;
+    int totalWidth = r.right - r.left;
+
+    // Layout:
+    // - Top 15%: Playlist info
+    // - Middle 40%: Current region (large text - 24pt)
+    // - Next 30%: Next region (medium text - 20pt)
+    // - Bottom 15%: Progress bar
+
+    int playlistHeight = (int)(totalHeight * 0.15);
+    int currentHeight = (int)(totalHeight * 0.40);
+    int nextHeight = (int)(totalHeight * 0.30);
+    int progressHeight = totalHeight - playlistHeight - currentHeight - nextHeight;
+
+    RECT playlistRect = {r.left, r.top, r.right, r.top + playlistHeight};
+    RECT currentRect = {r.left, playlistRect.bottom, r.right, playlistRect.bottom + currentHeight};
+    RECT nextRect = {r.left, currentRect.bottom, r.right, currentRect.bottom + nextHeight};
+    RECT progressRect = {r.left, nextRect.bottom, r.right, r.bottom};
+
+    // Draw playlist info at top
+    if (fonts.monitorMedium && m_playlistName.GetLength() > 0) {
+        char playlistInfo[256];
+        if (m_playlistNumber > 0) {
+            snprintf(playlistInfo, sizeof(playlistInfo), "Playlist %d: %s",
+                    m_playlistNumber, m_playlistName.Get());
+        } else {
+            snprintf(playlistInfo, sizeof(playlistInfo), "%s", m_playlistName.Get());
+        }
+
+        DrawLargeText(drawbm, playlistRect, playlistInfo, fonts.monitorMedium, colors.text);
+    }
+
+    // Draw current region with large text (24pt font)
+    if (fonts.monitorLarge && m_currentName.GetLength() > 0) {
+        char currentInfo[512];
+        if (m_currentNumber > 0) {
+            snprintf(currentInfo, sizeof(currentInfo), "NOW: %d. %s",
+                    m_currentNumber, m_currentName.Get());
+        } else {
+            snprintf(currentInfo, sizeof(currentInfo), "NOW: %s", m_currentName.Get());
+        }
+
+        // Use high contrast color for current item
+        DrawLargeText(drawbm, currentRect, currentInfo, fonts.monitorLarge, colors.currentItemText);
+
+        // Draw a subtle background highlight for current region
+        RECT highlightRect = currentRect;
+        highlightRect.left += 10;
+        highlightRect.right -= 10;
+        highlightRect.top += 5;
+        highlightRect.bottom -= 5;
+        LICE_FillRect(drawbm, highlightRect.left, highlightRect.top,
+                     highlightRect.right - highlightRect.left,
+                     highlightRect.bottom - highlightRect.top,
+                     colors.currentItemBg, 0.3f, LICE_BLIT_MODE_COPY);
+
+        // Redraw text on top of highlight
+        DrawLargeText(drawbm, currentRect, currentInfo, fonts.monitorLarge, colors.currentItemText);
+    }
+
+    // Draw next region with medium text (20pt font)
+    if (fonts.monitorMedium && m_nextName.GetLength() > 0) {
+        char nextInfo[512];
+        if (m_nextNumber > 0) {
+            snprintf(nextInfo, sizeof(nextInfo), "NEXT: %d. %s",
+                    m_nextNumber, m_nextName.Get());
+        } else {
+            snprintf(nextInfo, sizeof(nextInfo), "NEXT: %s", m_nextName.Get());
+        }
+
+        DrawLargeText(drawbm, nextRect, nextInfo, fonts.monitorMedium, colors.nextItemText);
+    }
+
+    // Draw progress bar
+    if (m_progress.total > 0.0) {
+        DrawProgressBar(drawbm, progressRect);
+    }
 }
 
 void ModernMonitoringView::SetProgress(double current, double total)
 {
+    // Store previous values to detect changes
+    double prevCurrent = m_progress.current;
+    double prevTotal = m_progress.total;
+
+    // Accept current and total time values
     m_progress.current = current;
     m_progress.total = total;
 
+    // Calculate percentage
     if (total > 0.0) {
         m_progress.percentage = (current / total) * 100.0;
+
+        // Clamp percentage to 0-100 range
+        if (m_progress.percentage < 0.0) {
+            m_progress.percentage = 0.0;
+        } else if (m_progress.percentage > 100.0) {
+            m_progress.percentage = 100.0;
+        }
     } else {
         m_progress.percentage = 0.0;
+    }
+
+    // Trigger repaint if changed
+    // We check if the values changed significantly (more than 0.1 seconds)
+    // to avoid excessive repaints for tiny changes
+    const double CHANGE_THRESHOLD = 0.1;
+    bool hasChanged = (fabs(current - prevCurrent) > CHANGE_THRESHOLD) ||
+                      (fabs(total - prevTotal) > CHANGE_THRESHOLD);
+
+    if (hasChanged) {
+        // Request repaint
+        RequestRedraw(NULL);
     }
 }
 
 void ModernMonitoringView::SetCurrentRegion(const char* name, int number)
 {
-    if (name) {
+    // Store previous values to detect changes
+    WDL_FastString prevName;
+    prevName.Set(m_currentName.Get());
+    int prevNumber = m_currentNumber;
+
+    // Handle null/empty names gracefully
+    if (name && name[0] != '\0') {
         m_currentName.Set(name);
+    } else {
+        // Set empty string for null/empty names
+        m_currentName.Set("");
     }
+
+    // Store region number
     m_currentNumber = number;
+
+    // Trigger repaint if changed
+    bool hasChanged = (strcmp(prevName.Get(), m_currentName.Get()) != 0) ||
+                      (prevNumber != m_currentNumber);
+
+    if (hasChanged) {
+        // Request repaint
+        RequestRedraw(NULL);
+    }
 }
 
 void ModernMonitoringView::SetNextRegion(const char* name, int number)
 {
-    if (name) {
+    // Store previous values to detect changes
+    WDL_FastString prevName;
+    prevName.Set(m_nextName.Get());
+    int prevNumber = m_nextNumber;
+
+    // Handle null/empty names gracefully
+    if (name && name[0] != '\0') {
         m_nextName.Set(name);
+    } else {
+        // Set empty string for null/empty names
+        m_nextName.Set("");
     }
+
+    // Store region number
     m_nextNumber = number;
+
+    // Trigger repaint if changed
+    bool hasChanged = (strcmp(prevName.Get(), m_nextName.Get()) != 0) ||
+                      (prevNumber != m_nextNumber);
+
+    if (hasChanged) {
+        // Request repaint
+        RequestRedraw(NULL);
+    }
 }
 
 void ModernMonitoringView::SetPlaylistInfo(const char* playlistName, int playlistNumber)
 {
-    // TODO: Store playlist info
-    // This will be implemented in later tasks
+    // Store previous values to detect changes
+    WDL_FastString prevName;
+    prevName.Set(m_playlistName.Get());
+    int prevNumber = m_playlistNumber;
+
+    // Store playlist name and number
+    if (playlistName && playlistName[0] != '\0') {
+        m_playlistName.Set(playlistName);
+    } else {
+        // Set empty string for null/empty names
+        m_playlistName.Set("");
+    }
+
+    // Store playlist number
+    m_playlistNumber = playlistNumber;
+
+    // Trigger repaint if changed
+    bool hasChanged = (strcmp(prevName.Get(), m_playlistName.Get()) != 0) ||
+                      (prevNumber != m_playlistNumber);
+
+    if (hasChanged) {
+        // Request repaint to display at top of monitoring view
+        RequestRedraw(NULL);
+    }
 }
 
 void ModernMonitoringView::DrawProgressBar(LICE_IBitmap* bm, const RECT& r)
 {
-    // TODO: Implement progress bar drawing
+    if (!bm || !m_theme) {
+        return;
+    }
+
+    // Validate rectangle
+    if (r.right <= r.left || r.bottom <= r.top) {
+        return;
+    }
+
+    const PlaylistTheme::Colors& colors = m_theme->GetColors();
+
+    // Add padding around the progress bar
+    const int PADDING = 20;
+    RECT barRect = r;
+    barRect.left += PADDING;
+    barRect.right -= PADDING;
+    barRect.top += PADDING / 2;
+    barRect.bottom -= PADDING / 2;
+
+    // Ensure we still have a valid rectangle after padding
+    if (barRect.right <= barRect.left || barRect.bottom <= barRect.top) {
+        return;
+    }
+
+    int barWidth = barRect.right - barRect.left;
+    int barHeight = barRect.bottom - barRect.top;
+
+    // Calculate progress percentage from current/total time
+    double percentage = 0.0;
+    if (m_progress.total > 0.0) {
+        percentage = (m_progress.current / m_progress.total);
+        // Clamp to 0-1 range
+        if (percentage < 0.0) percentage = 0.0;
+        if (percentage > 1.0) percentage = 1.0;
+    }
+
+    // Calculate filled width
+    int filledWidth = (int)(barWidth * percentage);
+
+    // Draw border around progress bar (2px border)
+    const int BORDER_WIDTH = 2;
+    LICE_DrawRect(bm, barRect.left - BORDER_WIDTH, barRect.top - BORDER_WIDTH,
+                  barWidth + BORDER_WIDTH * 2, barHeight + BORDER_WIDTH * 2,
+                  colors.border, 1.0f, LICE_BLIT_MODE_COPY);
+
+    // Draw background (unfilled portion)
+    LICE_FillRect(bm, barRect.left, barRect.top, barWidth, barHeight,
+                  colors.background, 1.0f, LICE_BLIT_MODE_COPY);
+
+    // Draw filled bar with theme progress color
+    if (filledWidth > 0) {
+        LICE_FillRect(bm, barRect.left, barRect.top, filledWidth, barHeight,
+                      colors.progressBar, 1.0f, LICE_BLIT_MODE_COPY);
+    }
+
+    // Draw progress text (percentage and time)
+    if (m_theme->GetFonts().itemTime) {
+        char progressText[128];
+
+        // Format current and total time as MM:SS
+        int currentMinutes = (int)(m_progress.current / 60.0);
+        int currentSeconds = (int)m_progress.current % 60;
+        int totalMinutes = (int)(m_progress.total / 60.0);
+        int totalSeconds = (int)m_progress.total % 60;
+
+        snprintf(progressText, sizeof(progressText), "%d:%02d / %d:%02d (%.0f%%)",
+                currentMinutes, currentSeconds, totalMinutes, totalSeconds, percentage * 100.0);
+
+        // Measure text to center it
+        RECT textRect = {0, 0, 0, 0};
+        LICE_MeasureText(progressText, &textRect.right, &textRect.bottom, m_theme->GetFonts().itemTime);
+
+        // Center text in the progress bar area
+        int textX = barRect.left + (barWidth - textRect.right) / 2;
+        int textY = barRect.top + (barHeight - textRect.bottom) / 2;
+
+        // Draw text with high contrast
+        LICE_DrawText(bm, textX, textY, progressText, colors.text,
+                     1.0f, LICE_BLIT_MODE_COPY, m_theme->GetFonts().itemTime);
+    }
 }
 
 void ModernMonitoringView::DrawLargeText(LICE_IBitmap* bm, const RECT& r, const char* text, LICE_CachedFont* font, int color)
 {
-    // TODO: Implement large text drawing
+    if (!bm || !text || !font) {
+        return;
+    }
+
+    // Validate rectangle
+    if (r.right <= r.left || r.bottom <= r.top) {
+        return;
+    }
+
+    // Measure text to center it
+    RECT textRect = {0, 0, 0, 0};
+    LICE_MeasureText(text, &textRect.right, &textRect.bottom, font);
+
+    // Calculate centered position
+    int textX = r.left + (r.right - r.left - textRect.right) / 2;
+    int textY = r.top + (r.bottom - r.top - textRect.bottom) / 2;
+
+    // Ensure text is within bounds
+    if (textX < r.left) textX = r.left;
+    if (textY < r.top) textY = r.top;
+
+    // Draw the text with high contrast color
+    LICE_DrawText(bm, textX, textY, text, color, 1.0f, LICE_BLIT_MODE_COPY, font);
 }

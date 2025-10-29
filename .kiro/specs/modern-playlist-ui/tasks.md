@@ -185,41 +185,41 @@
   - Ensure next item is also visible if possible
   - _Requirements: 8.1, 8.2_
 
-- [ ] 6. Implement ModernMonitoringView
-- [ ] 6.1 Create ModernMonitoringView class extending SNM_FiveMonitors
+- [x] 6. Implement ModernMonitoringView
+- [x] 6.1 Create ModernMonitoringView class extending SNM_FiveMonitors
   - Add member variables for progress info and region data
   - Implement constructor
   - Initialize with default values
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 6.2 Override OnPaint method for monitoring mode
+- [x] 6.2 Override OnPaint method for monitoring mode
   - Use high contrast colors (7:1 ratio minimum)
   - Draw large text for current region (24pt font)
   - Draw medium text for next region (20pt font)
   - Draw playlist info at top
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6.3 Implement DrawProgressBar method
+- [x] 6.3 Implement DrawProgressBar method
   - Calculate progress percentage from current/total time
   - Draw filled bar with theme progress color
   - Draw border around progress bar
   - Update smoothly during playback
   - _Requirements: 4.5_
 
-- [ ] 6.4 Implement SetProgress method
+- [x] 6.4 Implement SetProgress method
   - Accept current and total time values
   - Calculate percentage
   - Store in ProgressInfo structure
   - Trigger repaint if changed
   - _Requirements: 4.5_
 
-- [ ] 6.5 Implement SetCurrentRegion and SetNextRegion methods
+- [x] 6.5 Implement SetCurrentRegion and SetNextRegion methods
   - Store region name and number
   - Trigger repaint if changed
   - Handle null/empty names gracefully
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 6.6 Implement SetPlaylistInfo method
+- [x] 6.6 Implement SetPlaylistInfo method
   - Store playlist name and number
   - Display at top of monitoring view
   - Use appropriate font size

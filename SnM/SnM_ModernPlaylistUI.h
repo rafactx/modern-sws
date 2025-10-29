@@ -212,8 +212,10 @@ private:
     ProgressInfo m_progress;
     WDL_FastString m_currentName;
     WDL_FastString m_nextName;
+    WDL_FastString m_playlistName;
     int m_currentNumber;
     int m_nextNumber;
+    int m_playlistNumber;
     PlaylistTheme* m_theme;
 };
 
