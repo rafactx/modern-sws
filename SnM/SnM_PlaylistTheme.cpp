@@ -27,6 +27,7 @@
 
 #include "stdafx.h"
 #include "SnM_PlaylistTheme.h"
+#include "SnM_PlaylistIcons.h"
 #include "SnM_Dlg.h"
 
 // Static instance
@@ -95,10 +96,17 @@ void PlaylistTheme::UpdateTheme()
 
     bool isDark = luminance < 0.5f;
     LoadTheme(isDark);
+
+    // Clear icon cache when theme changes to regenerate icons with new colors
+    PlaylistIconManager* iconMgr = PlaylistIconManager::GetInstance();
+    if (iconMgr) {
+        iconMgr->ClearCache();
+    }
 }
 
 void PlaylistTheme::LoadDefaultDarkTheme()
 {
+    // Base dark theme colors
     m_colors.background = LICE_RGBA(30, 30, 30, 255);
     m_colors.text = LICE_RGBA(224, 224, 224, 255);
     m_colors.currentItemBg = LICE_RGBA(45, 95, 141, 255);
@@ -112,10 +120,43 @@ void PlaylistTheme::LoadDefaultDarkTheme()
     m_colors.progressBar = LICE_RGBA(0, 120, 215, 255);
     m_colors.warningRed = LICE_RGBA(255, 0, 0, 255);
     m_colors.accentBlue = LICE_RGBA(0, 120, 215, 255);
+
+    // PLATFORM-SPECIFIC COLOR ADJUSTMENTS (Tasks 10.1, 10.2, 10.3)
+
+#ifdef _WIN32
+    // Windows Dark Theme Adjustments (Task 10.1)
+    // Windows 10/11 dark mode uses slightly different color palette
+    // Adjust colors to match Windows system theme better
+    m_colors.background = LICE_RGBA(32, 32, 32, 255);      // Slightly lighter for Windows
+    m_colors.currentItemBg = LICE_RGBA(0, 120, 215, 255);  // Windows accent blue
+    m_colors.selectedBg = LICE_RGBA(55, 55, 55, 255);      // Match Windows selection
+    m_colors.hoverBg = LICE_RGBA(50, 50, 52, 255);         // Subtle hover for Windows
+
+#elif defined(__APPLE__)
+    // macOS Dark Theme Adjustments (Task 10.2)
+    // macOS dark mode has different color characteristics
+    // Adjust to match macOS system appearance
+    m_colors.background = LICE_RGBA(28, 28, 30, 255);      // macOS dark background
+    m_colors.currentItemBg = LICE_RGBA(10, 132, 255, 255); // macOS system blue
+    m_colors.selectedBg = LICE_RGBA(48, 48, 51, 255);      // macOS selection color
+    m_colors.hoverBg = LICE_RGBA(44, 44, 46, 255);         // macOS hover color
+    m_colors.border = LICE_RGBA(58, 58, 60, 255);          // macOS separator color
+
+#else
+    // Linux Dark Theme Adjustments (Task 10.3)
+    // Linux has various desktop environments (GNOME, KDE, etc.)
+    // Use neutral colors that work well across different themes
+    m_colors.background = LICE_RGBA(35, 35, 35, 255);      // Neutral dark background
+    m_colors.currentItemBg = LICE_RGBA(52, 101, 164, 255); // GNOME-style blue
+    m_colors.selectedBg = LICE_RGBA(60, 60, 60, 255);      // Neutral selection
+    m_colors.hoverBg = LICE_RGBA(48, 48, 48, 255);         // Subtle hover
+    m_colors.border = LICE_RGBA(70, 70, 70, 255);          // Visible border
+#endif
 }
 
 void PlaylistTheme::LoadDefaultLightTheme()
 {
+    // Base light theme colors
     m_colors.background = LICE_RGBA(255, 255, 255, 255);
     m_colors.text = LICE_RGBA(30, 30, 30, 255);
     m_colors.currentItemBg = LICE_RGBA(0, 120, 215, 255);
@@ -129,6 +170,37 @@ void PlaylistTheme::LoadDefaultLightTheme()
     m_colors.progressBar = LICE_RGBA(0, 120, 215, 255);
     m_colors.warningRed = LICE_RGBA(255, 0, 0, 255);
     m_colors.accentBlue = LICE_RGBA(0, 120, 215, 255);
+
+    // PLATFORM-SPECIFIC COLOR ADJUSTMENTS (Tasks 10.1, 10.2, 10.3)
+
+#ifdef _WIN32
+    // Windows Light Theme Adjustments (Task 10.1)
+    // Windows 10/11 light mode uses specific color palette
+    m_colors.background = LICE_RGBA(255, 255, 255, 255);   // Pure white for Windows
+    m_colors.currentItemBg = LICE_RGBA(0, 120, 215, 255);  // Windows accent blue
+    m_colors.selectedBg = LICE_RGBA(230, 230, 230, 255);   // Windows selection
+    m_colors.hoverBg = LICE_RGBA(243, 243, 243, 255);      // Subtle hover for Windows
+    m_colors.border = LICE_RGBA(218, 218, 218, 255);       // Windows border color
+
+#elif defined(__APPLE__)
+    // macOS Light Theme Adjustments (Task 10.2)
+    // macOS light mode has warmer tones
+    m_colors.background = LICE_RGBA(255, 255, 255, 255);   // Pure white
+    m_colors.currentItemBg = LICE_RGBA(10, 132, 255, 255); // macOS system blue
+    m_colors.selectedBg = LICE_RGBA(220, 220, 220, 255);   // macOS selection
+    m_colors.hoverBg = LICE_RGBA(245, 245, 245, 255);      // macOS hover
+    m_colors.border = LICE_RGBA(210, 210, 210, 255);       // macOS separator
+    m_colors.text = LICE_RGBA(0, 0, 0, 255);               // Pure black text for macOS
+
+#else
+    // Linux Light Theme Adjustments (Task 10.3)
+    // Linux light themes vary, use neutral colors
+    m_colors.background = LICE_RGBA(252, 252, 252, 255);   // Slightly off-white
+    m_colors.currentItemBg = LICE_RGBA(52, 101, 164, 255); // GNOME-style blue
+    m_colors.selectedBg = LICE_RGBA(215, 215, 215, 255);   // Neutral selection
+    m_colors.hoverBg = LICE_RGBA(238, 238, 238, 255);      // Subtle hover
+    m_colors.border = LICE_RGBA(190, 190, 190, 255);       // Visible border
+#endif
 }
 
 void PlaylistTheme::LoadCustomThemeFromINI()
@@ -178,39 +250,143 @@ void PlaylistTheme::LoadCustomThemeFromINI()
 
 void PlaylistTheme::InitializeFonts()
 {
-    // Clean up existing fonts
+    // Use default font sizes
+    FontSizes defaultSizes;
+    InitializeFontsWithSizes(defaultSizes);
+}
+
+void PlaylistTheme::InitializeFontsWithSizes(const FontSizes& sizes)
+{
+    // Check if font sizes have changed - if not, reuse cached fonts
+    if (m_fonts.itemName != NULL && m_fontSizes == sizes) {
+        // Fonts are already cached with the correct sizes, no need to recreate
+        return;
+    }
+
+    // Clean up existing fonts only if sizes changed
     CleanupFonts();
 
-    // Create fonts with proper sizes
-    // Font sizes: 12pt (itemName), 14pt (itemNumber), 11pt (itemTime), 24pt (monitorLarge), 20pt (monitorMedium)
+    // Store new font sizes
+    m_fontSizes = sizes;
 
-    // Helper lambda to create a font
+    // Helper lambda to create a font with platform-specific adjustments
     auto createFont = [](int height) -> LICE_CachedFont* {
         LICE_CachedFont* font = new LICE_CachedFont();
-        LOGFONT lf = {
-            height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH,
+
 #ifdef _WIN32
-            "Segoe UI"
-#else
-            "Arial"
-#endif
+        // WINDOWS PLATFORM-SPECIFIC ADJUSTMENTS (Task 10.1)
+
+        // Get DPI scaling factor for High DPI support
+        HDC hdc = GetDC(NULL);
+        int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(NULL, hdc);
+
+        // Scale font height based on DPI (96 is standard DPI)
+        // This ensures fonts render correctly on High DPI displays
+        int scaledHeight = -MulDiv(height, dpiY, 72);
+
+        LOGFONT lf = {
+            scaledHeight,           // Height scaled for DPI
+            0,                      // Width (0 = default)
+            0,                      // Escapement
+            0,                      // Orientation
+            FW_NORMAL,              // Weight
+            FALSE,                  // Italic
+            FALSE,                  // Underline
+            FALSE,                  // StrikeOut
+            DEFAULT_CHARSET,        // CharSet
+            OUT_DEFAULT_PRECIS,     // OutPrecision
+            CLIP_DEFAULT_PRECIS,    // ClipPrecision
+            CLEARTYPE_QUALITY,      // Quality - use CLEARTYPE_QUALITY for better rendering
+            DEFAULT_PITCH,          // PitchAndFamily
+            "Segoe UI"              // FaceName - modern Windows font
         };
 
+        // Create font with ClearType support for smooth rendering
+        // Force native rendering on Windows for better ClearType support
         font->SetFromHFont(
             CreateFontIndirect(&lf),
-            LICE_FONT_FLAG_OWNS_HFONT | (g_SNM_ClearType ? LICE_FONT_FLAG_FORCE_NATIVE : 0)
+            LICE_FONT_FLAG_OWNS_HFONT | LICE_FONT_FLAG_FORCE_NATIVE
         );
+
+#elif defined(__APPLE__)
+        // MACOS PLATFORM-SPECIFIC ADJUSTMENTS (Task 10.2)
+        // macOS uses Core Graphics via SWELL
+
+        // Get scale factor for Retina display support
+        // SWELL handles Retina scaling automatically, but we adjust font sizes
+        float scaleFactor = 1.0f;
+
+        // On Retina displays, SWELL reports 2x scale
+        // We don't need to manually scale fonts as SWELL handles it,
+        // but we use slightly different font metrics for better rendering
+        int adjustedHeight = height;
+
+        LOGFONT lf = {
+            -adjustedHeight,        // Negative height for better scaling
+            0,                      // Width (0 = default)
+            0,                      // Escapement
+            0,                      // Orientation
+            FW_NORMAL,              // Weight
+            FALSE,                  // Italic
+            FALSE,                  // Underline
+            FALSE,                  // StrikeOut
+            DEFAULT_CHARSET,        // CharSet
+            OUT_DEFAULT_PRECIS,     // OutPrecision
+            CLIP_DEFAULT_PRECIS,    // ClipPrecision
+            ANTIALIASED_QUALITY,    // Quality - use antialiasing on macOS
+            DEFAULT_PITCH,          // PitchAndFamily
+            "Helvetica Neue"        // FaceName - native macOS font
+        };
+
+        // Create font with antialiasing for smooth rendering on Retina displays
+        font->SetFromHFont(
+            CreateFontIndirect(&lf),
+            LICE_FONT_FLAG_OWNS_HFONT
+        );
+
+#else
+        // LINUX PLATFORM-SPECIFIC ADJUSTMENTS (Task 10.3)
+        // Linux uses Cairo via SWELL
+
+        // Cairo handles font rendering differently
+        // Use negative height for better scaling
+        int adjustedHeight = height;
+
+        LOGFONT lf = {
+            -adjustedHeight,        // Negative height for better scaling
+            0,                      // Width (0 = default)
+            0,                      // Escapement
+            0,                      // Orientation
+            FW_NORMAL,              // Weight
+            FALSE,                  // Italic
+            FALSE,                  // Underline
+            FALSE,                  // StrikeOut
+            DEFAULT_CHARSET,        // CharSet
+            OUT_DEFAULT_PRECIS,     // OutPrecision
+            CLIP_DEFAULT_PRECIS,    // ClipPrecision
+            ANTIALIASED_QUALITY,    // Quality - use antialiasing on Linux
+            DEFAULT_PITCH,          // PitchAndFamily
+            "Liberation Sans"       // FaceName - common Linux font (fallback to system default)
+        };
+
+        // Create font with antialiasing for smooth rendering
+        font->SetFromHFont(
+            CreateFontIndirect(&lf),
+            LICE_FONT_FLAG_OWNS_HFONT
+        );
+#endif
+
         font->SetBkMode(TRANSPARENT);
         return font;
     };
 
     // Create fonts with specified sizes
-    m_fonts.itemName = createFont(12);       // 12pt
-    m_fonts.itemNumber = createFont(14);     // 14pt
-    m_fonts.itemTime = createFont(11);       // 11pt
-    m_fonts.monitorLarge = createFont(24);   // 24pt
-    m_fonts.monitorMedium = createFont(20);  // 20pt
+    m_fonts.itemName = createFont(sizes.itemName);
+    m_fonts.itemNumber = createFont(sizes.itemNumber);
+    m_fonts.itemTime = createFont(sizes.itemTime);
+    m_fonts.monitorLarge = createFont(sizes.monitorLarge);
+    m_fonts.monitorMedium = createFont(sizes.monitorMedium);
 }
 
 void PlaylistTheme::CleanupFonts()
