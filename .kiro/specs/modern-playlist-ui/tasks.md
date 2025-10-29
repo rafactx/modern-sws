@@ -62,124 +62,124 @@
   - Allow color customization
   - _Requirements: 2.3_
 
-- [ ] 4. Implement ModernPlaylistItemRenderer
-- [ ] 4.1 Create ItemVisualState and ItemData structures
+- [x] 4. Implement ModernPlaylistItemRenderer
+- [x] 4.1 Create ItemVisualState and ItemData structures
   - Define ItemVisualState with all boolean flags and counts
   - Define ItemData with region info and timing data
   - Add validation methods
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 4.2 Implement DrawBackground method
+- [x] 4.2 Implement DrawBackground method
   - Draw rounded rectangle background with 4px radius
   - Apply appropriate color based on item state (playing, next, selected, hovered)
   - Add subtle shadow or border for depth
   - _Requirements: 1.4, 1.5, 5.4, 5.5, 6.1_
 
-- [ ] 4.3 Implement DrawStatusIcon method
+- [x] 4.3 Implement DrawStatusIcon method
   - Position icon at left side of item (16x16 minimum)
   - Draw play icon for currently playing item
   - Draw next icon for queued item
   - Draw warning icon for sync loss
   - _Requirements: 2.1, 2.2, 2.5_
 
-- [ ] 4.4 Implement DrawRegionNumber method
+- [x] 4.4 Implement DrawRegionNumber method
   - Draw region number with 14pt font minimum
   - Position after status icon with proper spacing
   - Use theme colors for text
   - _Requirements: 1.2_
 
-- [ ] 4.5 Implement DrawRegionName method
+- [x] 4.5 Implement DrawRegionName method
   - Draw region name with 12pt font minimum
   - Truncate long names with ellipsis
   - Position after region number
   - _Requirements: 1.3_
 
-- [ ] 4.6 Implement DrawTimeInfo method
+- [x] 4.6 Implement DrawTimeInfo method
   - Format duration as MM:SS
   - Draw with 11pt font minimum
   - Position at right side of item
   - Show elapsed/remaining time if item is playing
   - _Requirements: 3.1, 3.3, 3.4_
 
-- [ ] 4.7 Implement DrawLoopBadge method
+- [x] 4.7 Implement DrawLoopBadge method
   - Draw badge with contrasting background for loop count
   - Draw infinity symbol for infinite loops (14x14 minimum)
   - Position near time info
   - _Requirements: 2.3, 2.4_
 
-- [ ] 4.8 Implement DrawRoundedRect utility
+- [x] 4.8 Implement DrawRoundedRect utility
   - Use LICE functions to draw rounded corners
   - Support configurable radius (4px default)
   - Optimize for performance
   - _Requirements: 5.4_
 
-- [ ] 4.9 Implement main DrawItem method
+- [x] 4.9 Implement main DrawItem method
   - Coordinate all drawing sub-methods
   - Apply 4px spacing between items
   - Handle edge cases (null pointers, invalid data)
   - Implement fallback rendering if errors occur
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.3, 3.4_
 
-- [ ] 5. Implement ModernRegionPlaylistView
-- [ ] 5.1 Create ModernRegionPlaylistView class extending RegionPlaylistView
+- [x] 5. Implement ModernRegionPlaylistView
+- [x] 5.1 Create ModernRegionPlaylistView class extending RegionPlaylistView
   - Add member variables (renderer, theme, itemHeight, hoveredItem, modernRenderingEnabled)
   - Implement constructor and destructor
   - Initialize with default values
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 5.2 Override GetItemText method
+- [x] 5.2 Override GetItemText method
   - Maintain compatibility with base class
   - Add modern formatting for text columns
   - Handle null/invalid items gracefully
   - _Requirements: 1.2, 1.3, 3.1_
 
-- [ ] 5.3 Implement OnItemPaint method
+- [x] 5.3 Implement OnItemPaint method
   - Check if modern rendering is enabled
   - Get item data and visual state
   - Call ModernPlaylistItemRenderer::DrawItem
   - Implement try-catch for error handling with fallback
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 6.2, 7.1_
 
-- [ ] 5.4 Implement hover tracking
+- [x] 5.4 Implement hover tracking
   - Override OnMouseMove to track hovered item
   - Update m_hoveredItem index
   - Trigger repaint when hover changes
   - Implement 150ms transition for hover effect
   - _Requirements: 6.1_
 
-- [ ] 5.5 Implement GetItemState helper method
+- [x] 5.5 Implement GetItemState helper method
   - Determine if item is playing, next, selected, hovered
   - Check for sync loss state
   - Get loop count and infinite loop flag
   - Return ItemVisualState structure
   - _Requirements: 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 5.6 Implement GetItemData helper method
+- [x] 5.6 Implement GetItemData helper method
   - Extract region ID, number, name from RgnPlaylistItem
   - Get start/end positions and calculate duration
   - Validate data before returning
   - Return ItemData structure
   - _Requirements: 1.2, 1.3, 3.1, 3.2_
 
-- [ ] 5.7 Implement SetItemHeight and GetItemHeight methods
+- [x] 5.7 Implement SetItemHeight and GetItemHeight methods
   - Allow configurable item height
   - Ensure minimum height for readability
   - Trigger layout update when height changes
   - _Requirements: 1.1_
 
-- [ ] 5.8 Implement EnableModernRendering toggle
+- [x] 5.8 Implement EnableModernRendering toggle
   - Add flag to enable/disable modern rendering
   - Provide fallback to classic rendering
   - Save preference to reaper.ini
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 5.9 Implement UpdateTheme method
+- [x] 5.9 Implement UpdateTheme method
   - Detect theme changes from REAPER
   - Reload PlaylistTheme colors and fonts
   - Trigger full repaint
   - _Requirements: 5.1, 5.2_
 
-- [ ] 5.10 Implement auto-scroll to current item
+- [x] 5.10 Implement auto-scroll to current item
   - Detect when currently playing item changes
   - Scroll list to keep current item visible
   - Ensure next item is also visible if possible

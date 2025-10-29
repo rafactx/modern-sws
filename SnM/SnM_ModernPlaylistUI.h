@@ -36,6 +36,14 @@
 class PlaylistTheme;
 class PlaylistIconManager;
 
+// External global variables from SnM_RegionPlaylist.cpp
+extern int g_playPlaylist;      // -1: stopped, playlist id otherwise
+extern bool g_unsync;           // true when switching to a position that is not part of the playlist
+extern int g_playCur;           // index of the item being played, -1 means "not playing yet"
+extern int g_playNext;          // index of the next item to be played, -1 means "the end"
+extern int g_rgnLoop;           // region loop count: 0 not looping, <0 infinite loop, n>0 looping n times
+extern SWSProjConfig<RegionPlaylists> g_pls;
+
 ///////////////////////////////////////////////////////////////////////////////
 // ModernPlaylistItemRenderer - Renders individual playlist items
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,6 +156,9 @@ public:
     // Hover tracking
     void OnMouseMove(int x, int y);
     int GetHoveredItemIndex() const { return m_hoveredItem; }
+
+    // Auto-scroll
+    void AutoScrollToCurrentItem();
 
 protected:
     // Override base class methods
