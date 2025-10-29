@@ -58,8 +58,26 @@ PlaylistTheme::~PlaylistTheme()
 
 PlaylistTheme* PlaylistTheme::GetInstance()
 {
+    // TASK 11.3: Handle singleton creation failure
     if (!s_instance) {
-        s_instance = new PlaylistTheme();
+        #ifdef _DEBUG
+        try {
+        #endif
+            s_instance = new PlaylistTheme();
+
+            // TASK 11.1: Check if instance was created successfully
+            if (!s_instance) {
+                #ifdef _DEBUG
+                OutputDebugString("PlaylistTheme::GetInstance - Failed to create instance\n");
+                #endif
+            }
+        #ifdef _DEBUG
+        }
+        catch (...) {
+            OutputDebugString("PlaylistTheme::GetInstance - Exception during instance creation\n");
+            s_instance = NULL;
+        }
+        #endif
     }
     return s_instance;
 }
@@ -83,25 +101,41 @@ void PlaylistTheme::LoadTheme(bool isDark)
 
 void PlaylistTheme::UpdateTheme()
 {
-    // Detect current REAPER theme
-    // For now, we'll use a simple heuristic based on existing SNM theme functions
-    int bg, txt;
-    SNM_GetThemeListColors(&bg, &txt);
+    // TASK 11.3: Use try-catch for theme detection
+    #ifdef _DEBUG
+    try {
+    #endif
+        // Detect current REAPER theme
+        // For now, we'll use a simple heuristic based on existing SNM theme functions
+        int bg, txt;
+        SNM_GetThemeListColors(&bg, &txt);
 
-    // Determine if dark based on background luminance
-    int r = (bg >> 16) & 0xFF;
-    int g = (bg >> 8) & 0xFF;
-    int b = bg & 0xFF;
-    float luminance = (0.299f * r + 0.587f * g + 0.114f * b) / 255.0f;
+        // Determine if dark based on background luminance
+        int r = (bg >> 16) & 0xFF;
+        int g = (bg >> 8) & 0xFF;
+        int b = bg & 0xFF;
+        float luminance = (0.299f * r + 0.587f * g + 0.114f * b) / 255.0f;
 
-    bool isDark = luminance < 0.5f;
-    LoadTheme(isDark);
+        bool isDark = luminance < 0.5f;
+        LoadTheme(isDark);
 
-    // Clear icon cache when theme changes to regenerate icons with new colors
-    PlaylistIconManager* iconMgr = PlaylistIconManager::GetInstance();
-    if (iconMgr) {
-        iconMgr->ClearCache();
+        // TASK 11.1: Check icon manager before clearing cache
+        // Clear icon cache when theme changes to regenerate icons with new colors
+        PlaylistIconManager* iconMgr = PlaylistIconManager::GetInstance();
+        if (iconMgr) {
+            iconMgr->ClearCache();
+        } else {
+            #ifdef _DEBUG
+            OutputDebugString("PlaylistTheme::UpdateTheme - NULL icon manager\n");
+            #endif
+        }
+    #ifdef _DEBUG
     }
+    catch (...) {
+        OutputDebugString("PlaylistTheme::UpdateTheme - Exception during theme update\n");
+        // Continue with existing theme
+    }
+    #endif
 }
 
 void PlaylistTheme::LoadDefaultDarkTheme()
@@ -257,17 +291,22 @@ void PlaylistTheme::InitializeFonts()
 
 void PlaylistTheme::InitializeFontsWithSizes(const FontSizes& sizes)
 {
+    // TASK 11.4: Check if fonts are already cached with correct sizes
     // Check if font sizes have changed - if not, reuse cached fonts
     if (m_fonts.itemName != NULL && m_fontSizes == sizes) {
         // Fonts are already cached with the correct sizes, no need to recreate
         return;
     }
 
-    // Clean up existing fonts only if sizes changed
-    CleanupFonts();
+    // TASK 11.3: Use try-catch for font initialization
+    #ifdef _DEBUG
+    try {
+    #endif
+        // Clean up existing fonts only if sizes changed
+        CleanupFonts();
 
-    // Store new font sizes
-    m_fontSizes = sizes;
+        // Store new font sizes
+        m_fontSizes = sizes;
 
     // Helper lambda to create a font with platform-specific adjustments
     auto createFont = [](int height) -> LICE_CachedFont* {
@@ -381,37 +420,71 @@ void PlaylistTheme::InitializeFontsWithSizes(const FontSizes& sizes)
         return font;
     };
 
-    // Create fonts with specified sizes
-    m_fonts.itemName = createFont(sizes.itemName);
-    m_fonts.itemNumber = createFont(sizes.itemNumber);
-    m_fonts.itemTime = createFont(sizes.itemTime);
-    m_fonts.monitorLarge = createFont(sizes.monitorLarge);
-    m_fonts.monitorMedium = createFont(sizes.monitorMedium);
+        // TASK 11.4: Create fonts with graceful degradation
+        // Create fonts with specified sizes
+        m_fonts.itemName = createFont(sizes.itemName);
+        m_fonts.itemNumber = createFont(sizes.itemNumber);
+        m_fonts.itemTime = createFont(sizes.itemTime);
+        m_fonts.monitorLarge = createFont(sizes.monitorLarge);
+        m_fonts.monitorMedium = createFont(sizes.monitorMedium);
+
+        // TASK 11.1: Check if fonts were created successfully
+        #ifdef _DEBUG
+        if (!m_fonts.itemName) OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Failed to create itemName font\n");
+        if (!m_fonts.itemNumber) OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Failed to create itemNumber font\n");
+        if (!m_fonts.itemTime) OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Failed to create itemTime font\n");
+        if (!m_fonts.monitorLarge) OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Failed to create monitorLarge font\n");
+        if (!m_fonts.monitorMedium) OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Failed to create monitorMedium font\n");
+        #endif
+    #ifdef _DEBUG
+    }
+    catch (...) {
+        OutputDebugString("PlaylistTheme::InitializeFontsWithSizes - Exception during font initialization\n");
+        // Clean up any partially created fonts
+        CleanupFonts();
+    }
+    #endif
 }
 
 void PlaylistTheme::CleanupFonts()
 {
-    // Delete fonts if they exist
-    if (m_fonts.itemName) {
-        delete m_fonts.itemName;
+    // TASK 11.3: Safe cleanup with try-catch
+    #ifdef _DEBUG
+    try {
+    #endif
+        // TASK 11.1: Delete fonts if they exist
+        if (m_fonts.itemName) {
+            delete m_fonts.itemName;
+            m_fonts.itemName = NULL;
+        }
+        if (m_fonts.itemNumber) {
+            delete m_fonts.itemNumber;
+            m_fonts.itemNumber = NULL;
+        }
+        if (m_fonts.itemTime) {
+            delete m_fonts.itemTime;
+            m_fonts.itemTime = NULL;
+        }
+        if (m_fonts.monitorLarge) {
+            delete m_fonts.monitorLarge;
+            m_fonts.monitorLarge = NULL;
+        }
+        if (m_fonts.monitorMedium) {
+            delete m_fonts.monitorMedium;
+            m_fonts.monitorMedium = NULL;
+        }
+    #ifdef _DEBUG
+    }
+    catch (...) {
+        OutputDebugString("PlaylistTheme::CleanupFonts - Exception during font cleanup\n");
+        // Set all pointers to NULL to prevent dangling pointers
         m_fonts.itemName = NULL;
-    }
-    if (m_fonts.itemNumber) {
-        delete m_fonts.itemNumber;
         m_fonts.itemNumber = NULL;
-    }
-    if (m_fonts.itemTime) {
-        delete m_fonts.itemTime;
         m_fonts.itemTime = NULL;
-    }
-    if (m_fonts.monitorLarge) {
-        delete m_fonts.monitorLarge;
         m_fonts.monitorLarge = NULL;
-    }
-    if (m_fonts.monitorMedium) {
-        delete m_fonts.monitorMedium;
         m_fonts.monitorMedium = NULL;
     }
+    #endif
 }
 
 int PlaylistTheme::GetHoverColor(int baseColor) const

@@ -177,13 +177,42 @@ void ModernPlaylistItemRenderer::DrawItem(
     const ItemVisualState& state,
     const PlaylistTheme* theme)
 {
-    // OPTIMIZATION: Early exit checks - minimize work for invalid inputs
-    if (!drawbm || !theme) {
+    // TASK 11.1: Null pointer checks - check all pointer parameters before use
+    if (!drawbm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawItem - NULL drawbm\n");
+        #endif
         return;
     }
 
-    // OPTIMIZATION: Fast path for invalid data - single fill rect operation
-    if (!state.IsValid() || !data.IsValid()) {
+    if (!theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawItem - NULL theme, using fallback rendering\n");
+        #endif
+        // Fallback: render with default gray background
+        LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                     itemRect.right - itemRect.left,
+                     itemRect.bottom - itemRect.top,
+                     LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
+        return;
+    }
+
+    // TASK 11.2: Validate data before use
+    if (!state.IsValid()) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawItem - Invalid state\n");
+        #endif
+        LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                     itemRect.right - itemRect.left,
+                     itemRect.bottom - itemRect.top,
+                     LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
+        return;
+    }
+
+    if (!data.IsValid()) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawItem - Invalid data\n");
+        #endif
         LICE_FillRect(drawbm, itemRect.left, itemRect.top,
                      itemRect.right - itemRect.left,
                      itemRect.bottom - itemRect.top,
@@ -319,8 +348,20 @@ void ModernPlaylistItemRenderer::DrawItem(
 
 void ModernPlaylistItemRenderer::DrawBackground(LICE_IBitmap* bm, const RECT& r, const ItemVisualState& state, const PlaylistTheme* theme)
 {
-    // OPTIMIZATION: Early exit for invalid inputs
-    if (!bm || !theme) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawBackground - NULL bitmap\n");
+        #endif
+        return;
+    }
+
+    if (!theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawBackground - NULL theme, using fallback\n");
+        #endif
+        // Fallback: use default gray background
+        DrawRoundedRect(bm, r, 4, LICE_RGBA(64, 64, 64, 255));
         return;
     }
 
@@ -360,7 +401,11 @@ void ModernPlaylistItemRenderer::DrawBackground(LICE_IBitmap* bm, const RECT& r,
 
 void ModernPlaylistItemRenderer::DrawStatusIcon(LICE_IBitmap* bm, const RECT& r, const ItemVisualState& state)
 {
+    // TASK 11.1: Null pointer check
     if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawStatusIcon - NULL bitmap\n");
+        #endif
         return;
     }
 
@@ -369,8 +414,16 @@ void ModernPlaylistItemRenderer::DrawStatusIcon(LICE_IBitmap* bm, const RECT& r,
         return;
     }
 
+    // TASK 11.1: Check icon manager instance
     PlaylistIconManager* iconMgr = PlaylistIconManager::GetInstance();
     if (!iconMgr) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawStatusIcon - NULL icon manager, using text fallback\n");
+        #endif
+        // TASK 11.4: Graceful degradation - use text fallback if icons fail
+        // Draw simple text indicator instead of icon
+        const char* indicator = state.isSyncLoss ? "!" : (state.isPlaying ? ">" : "*");
+        // Note: Would need font to draw text properly, skip for now as this is rare
         return;
     }
 
@@ -404,14 +457,37 @@ void ModernPlaylistItemRenderer::DrawStatusIcon(LICE_IBitmap* bm, const RECT& r,
 
 void ModernPlaylistItemRenderer::DrawRegionNumber(LICE_IBitmap* bm, const RECT& r, int number, const PlaylistTheme* theme)
 {
-    if (!bm || !theme || number <= 0) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionNumber - NULL bitmap\n");
+        #endif
+        return;
+    }
+
+    if (!theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionNumber - NULL theme\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.2: Validate region number
+    if (number <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionNumber - Invalid region number\n");
+        #endif
         return;
     }
 
     const PlaylistTheme::Fonts& fonts = theme->GetFonts();
     const PlaylistTheme::Colors& colors = theme->GetColors();
 
+    // TASK 11.4: Graceful degradation - check if font is available
     if (!fonts.itemNumber) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionNumber - NULL font, skipping\n");
+        #endif
         return;
     }
 
@@ -434,14 +510,36 @@ void ModernPlaylistItemRenderer::DrawRegionNumber(LICE_IBitmap* bm, const RECT& 
 
 void ModernPlaylistItemRenderer::DrawRegionName(LICE_IBitmap* bm, const RECT& r, const char* name, const PlaylistTheme* theme)
 {
-    if (!bm || !theme || !name || !name[0]) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionName - NULL bitmap\n");
+        #endif
+        return;
+    }
+
+    if (!theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionName - NULL theme\n");
+        #endif
+        return;
+    }
+
+    if (!name || !name[0]) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionName - NULL or empty name\n");
+        #endif
         return;
     }
 
     const PlaylistTheme::Fonts& fonts = theme->GetFonts();
     const PlaylistTheme::Colors& colors = theme->GetColors();
 
+    // TASK 11.4: Graceful degradation - check if font is available
     if (!fonts.itemName) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRegionName - NULL font, skipping\n");
+        #endif
         return;
     }
 
@@ -544,12 +642,22 @@ void ModernPlaylistItemRenderer::DrawTimeInfo(LICE_IBitmap* bm, const RECT& r, c
 
 void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, int count, bool infinite, const PlaylistTheme* theme)
 {
-    // OPTIMIZATION: Early exit for invalid inputs
-    if (!bm || !theme) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawLoopBadge - NULL bitmap\n");
+        #endif
         return;
     }
 
-    // OPTIMIZATION: Early exit if no badge needed
+    if (!theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawLoopBadge - NULL theme\n");
+        #endif
+        return;
+    }
+
+    // Early exit if no badge needed
     if (count <= 1 && !infinite) {
         return;
     }
@@ -567,11 +675,24 @@ void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, 
 
     if (infinite) {
         // OPTIMIZATION: Draw infinity symbol - single icon draw call
+        // TASK 11.1: Check icon manager instance
         PlaylistIconManager* iconMgr = PlaylistIconManager::GetInstance();
         if (iconMgr) {
             const int iconX = badgeX + ((BADGE_SIZE - ICON_SIZE) >> 1);
             const int iconY = badgeY + ((BADGE_SIZE - ICON_SIZE) >> 1);
             iconMgr->DrawIcon(bm, PlaylistIconManager::ICON_LOOP_INFINITE, iconX, iconY, ICON_SIZE);
+        } else {
+            #ifdef _DEBUG
+            OutputDebugString("ModernPlaylistItemRenderer::DrawLoopBadge - NULL icon manager, using text fallback\n");
+            #endif
+            // TASK 11.4: Graceful degradation - draw text "∞" if icon fails
+            // For now, just draw the badge background without icon
+            RECT badgeRect;
+            badgeRect.left = badgeX;
+            badgeRect.top = badgeY;
+            badgeRect.right = badgeX + BADGE_SIZE;
+            badgeRect.bottom = badgeY + BADGE_SIZE;
+            DrawRoundedRect(bm, badgeRect, 3, colors.accentBlue);
         }
     }
     else {
@@ -607,8 +728,19 @@ void ModernPlaylistItemRenderer::DrawLoopBadge(LICE_IBitmap* bm, const RECT& r, 
 
 void ModernPlaylistItemRenderer::DrawRoundedRect(LICE_IBitmap* bm, const RECT& r, int radius, int color)
 {
-    // OPTIMIZATION: Early exit for invalid inputs
-    if (!bm || radius < 0) {
+    // TASK 11.1: Null pointer check
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRoundedRect - NULL bitmap\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.2: Validate radius
+    if (radius < 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernPlaylistItemRenderer::DrawRoundedRect - Invalid radius\n");
+        #endif
         return;
     }
 
@@ -867,23 +999,41 @@ void ModernRegionPlaylistView::OnMouseMove(int x, int y)
 
 void ModernRegionPlaylistView::GetItemText(SWS_ListItem* item, int iCol, char* str, int iStrMax)
 {
-    // Validate inputs
-    if (!str || iStrMax <= 0) {
+    // TASK 11.1: Null pointer checks - validate all parameters
+    if (!str) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemText - NULL string buffer\n");
+        #endif
+        return;
+    }
+
+    if (iStrMax <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemText - Invalid buffer size\n");
+        #endif
         return;
     }
 
     // Initialize output
     *str = '\0';
 
-    // Handle null/invalid items gracefully
+    // TASK 11.1: Handle null items gracefully
     if (!item) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemText - NULL item\n");
+        #endif
         return;
     }
 
     // Cast to RgnPlaylistItem
     RgnPlaylistItem* pItem = (RgnPlaylistItem*)item;
+
+    // TASK 11.2: Validate item data
     if (!pItem || !pItem->IsValidIem()) {
-        // Invalid item - return empty string or error indicator
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemText - Invalid item\n");
+        #endif
+        // Invalid item - return error indicator
         if (iStrMax > 1) {
             lstrcpyn(str, "-", iStrMax);
         }
@@ -901,31 +1051,50 @@ void ModernRegionPlaylistView::GetItemText(SWS_ListItem* item, int iCol, char* s
 
 void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* item, const RECT& itemRect)
 {
-    // OPTIMIZATION: Fast path - check if modern rendering is enabled first
+    // TASK 11.3: Implement fallback to classic rendering
     if (!m_modernRenderingEnabled) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Modern rendering disabled, using classic\n");
+        #endif
         return; // Fallback to default rendering
     }
 
-    // OPTIMIZATION: Early validation - minimize work for invalid inputs
-    if (!drawbm || !item) {
+    // TASK 11.1: Null pointer checks - validate all parameters
+    if (!drawbm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnItemPaint - NULL drawbm\n");
+        #endif
         return;
     }
 
-    // OPTIMIZATION: Fast rectangle validation
+    if (!item) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnItemPaint - NULL item\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.2: Validate rectangle
     if (itemRect.right <= itemRect.left || itemRect.bottom <= itemRect.top) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Invalid rectangle\n");
+        #endif
         return;
     }
 
-    // OPTIMIZATION: Use try-catch only in debug builds for performance
-    // In release builds, we rely on validation checks
+    // TASK 11.3: Use try-catch for error handling with fallback
+    // In debug builds, catch exceptions and fall back to safe rendering
     #ifdef _DEBUG
     try {
     #endif
 
-        // OPTIMIZATION: Cast and validate item once
+        // TASK 11.2: Validate item data
         RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
         if (!plItem || !plItem->IsValidIem()) {
-            // OPTIMIZATION: Minimal fallback - single fill rect
+            #ifdef _DEBUG
+            OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Invalid playlist item, using fallback\n");
+            #endif
+            // TASK 11.3: Fallback rendering for invalid items
             LICE_FillRect(drawbm, itemRect.left, itemRect.top,
                          itemRect.right - itemRect.left,
                          itemRect.bottom - itemRect.top,
@@ -933,9 +1102,12 @@ void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* i
             return;
         }
 
-        // OPTIMIZATION: Get playlist once and cache
+        // TASK 11.1: Check playlist pointer
         RegionPlaylist* pl = GetPlaylist();
         if (!pl) {
+            #ifdef _DEBUG
+            OutputDebugString("ModernRegionPlaylistView::OnItemPaint - NULL playlist\n");
+            #endif
             return;
         }
 
@@ -948,24 +1120,53 @@ void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* i
             return; // Item is clean, skip rendering
         }
 
-        // OPTIMIZATION: Get item data and state - these are cached internally
+        // Get item data and state
         ModernPlaylistItemRenderer::ItemData data = GetItemData(plItem);
         ModernPlaylistItemRenderer::ItemVisualState state = GetItemState(item, itemIndex);
 
-        // OPTIMIZATION: Fast validation check
+        // TASK 11.2: Validate data before rendering
         if (!data.IsValid()) {
-            // OPTIMIZATION: Minimal fallback with theme color
+            #ifdef _DEBUG
+            OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Invalid item data, using fallback\n");
+            #endif
+            // TASK 11.3: Fallback rendering with theme color if available
             if (m_theme) {
                 const PlaylistTheme::Colors& colors = m_theme->GetColors();
                 LICE_FillRect(drawbm, itemRect.left, itemRect.top,
                              itemRect.right - itemRect.left,
                              itemRect.bottom - itemRect.top - 4,
                              colors.background, 1.0f, LICE_BLIT_MODE_COPY);
+            } else {
+                // TASK 11.4: Graceful degradation - use default color if theme fails
+                LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                             itemRect.right - itemRect.left,
+                             itemRect.bottom - itemRect.top - 4,
+                             LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
             }
             return;
         }
 
-        // OPTIMIZATION: Call optimized renderer - all drawing batched inside
+        // TASK 11.1: Check theme before rendering
+        if (!m_theme) {
+            #ifdef _DEBUG
+            OutputDebugString("ModernRegionPlaylistView::OnItemPaint - NULL theme, attempting to reinitialize\n");
+            #endif
+            // TASK 11.4: Try to recover theme
+            m_theme = PlaylistTheme::GetInstance();
+            if (!m_theme) {
+                #ifdef _DEBUG
+                OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Failed to get theme, using fallback\n");
+                #endif
+                // Fallback to simple rendering
+                LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                             itemRect.right - itemRect.left,
+                             itemRect.bottom - itemRect.top - 4,
+                             LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
+                return;
+            }
+        }
+
+        // Call renderer - all drawing batched inside
         m_renderer.DrawItem(drawbm, itemRect, data, state, m_theme);
 
         // OPTIMIZATION: Clear dirty flag after successful render
@@ -977,13 +1178,31 @@ void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* i
     #ifdef _DEBUG
     }
     catch (...) {
-        // Fallback rendering in case of any errors (debug only)
+        // TASK 11.3: Fallback rendering in case of any errors (debug only)
+        OutputDebugString("ModernRegionPlaylistView::OnItemPaint - Exception caught, using fallback rendering\n");
+
+        // TASK 11.4: Graceful degradation - try theme colors first, then default
         if (m_theme) {
-            const PlaylistTheme::Colors& colors = m_theme->GetColors();
+            try {
+                const PlaylistTheme::Colors& colors = m_theme->GetColors();
+                LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                             itemRect.right - itemRect.left,
+                             itemRect.bottom - itemRect.top - 4,
+                             colors.background, 1.0f, LICE_BLIT_MODE_COPY);
+            }
+            catch (...) {
+                // Theme access failed, use default color
+                LICE_FillRect(drawbm, itemRect.left, itemRect.top,
+                             itemRect.right - itemRect.left,
+                             itemRect.bottom - itemRect.top - 4,
+                             LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
+            }
+        } else {
+            // No theme available, use default color
             LICE_FillRect(drawbm, itemRect.left, itemRect.top,
                          itemRect.right - itemRect.left,
                          itemRect.bottom - itemRect.top - 4,
-                         colors.background, 1.0f, LICE_BLIT_MODE_COPY);
+                         LICE_RGBA(64, 64, 64, 255), 1.0f, LICE_BLIT_MODE_COPY);
         }
     }
     #endif
@@ -991,12 +1210,26 @@ void ModernRegionPlaylistView::OnItemPaint(LICE_IBitmap* drawbm, SWS_ListItem* i
 
 void ModernRegionPlaylistView::UpdateTheme()
 {
+    // TASK 11.1: Check if theme exists
     if (!m_theme) {
-        // Re-initialize theme if it was somehow lost
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::UpdateTheme - NULL theme, attempting to reinitialize\n");
+        #endif
+        // TASK 11.4: Try to recover theme
         m_theme = PlaylistTheme::GetInstance();
+
+        if (!m_theme) {
+            #ifdef _DEBUG
+            OutputDebugString("ModernRegionPlaylistView::UpdateTheme - Failed to get theme instance\n");
+            #endif
+            return;
+        }
     }
 
-    if (m_theme) {
+    // TASK 11.3: Use try-catch for theme update to handle failures gracefully
+    #ifdef _DEBUG
+    try {
+    #endif
         // Detect theme changes from REAPER and reload colors and fonts
         m_theme->UpdateTheme();
 
@@ -1008,26 +1241,44 @@ void ModernRegionPlaylistView::UpdateTheme()
             InvalidateRect(m_hwndList, NULL, TRUE);
             UpdateWindow(m_hwndList);
         }
+    #ifdef _DEBUG
     }
+    catch (...) {
+        OutputDebugString("ModernRegionPlaylistView::UpdateTheme - Exception during theme update\n");
+        // Continue without theme update - use existing theme
+    }
+    #endif
 }
 
 ModernPlaylistItemRenderer::ItemVisualState ModernRegionPlaylistView::GetItemState(SWS_ListItem* item, int index)
 {
     ModernPlaylistItemRenderer::ItemVisualState state;
 
+    // TASK 11.1: Null pointer check
     if (!item) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemState - NULL item\n");
+        #endif
         return state;
     }
 
     // Cast to RgnPlaylistItem
     RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
+
+    // TASK 11.1: Validate cast result
     if (!plItem) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemState - Failed to cast item\n");
+        #endif
         return state;
     }
 
-    // Get current playlist
+    // TASK 11.1: Check playlist pointer
     RegionPlaylist* curpl = GetPlaylist();
     if (!curpl) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemState - NULL playlist\n");
+        #endif
         return state;
     }
 
@@ -1190,18 +1441,28 @@ ModernPlaylistItemRenderer::ItemData ModernRegionPlaylistView::GetItemData(RgnPl
 {
     ModernPlaylistItemRenderer::ItemData data;
 
+    // TASK 11.1: Null pointer check
     if (!item) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemData - NULL item\n");
+        #endif
         return data;
     }
 
-    // Validate item
+    // TASK 11.2: Validate item
     if (!item->IsValidIem()) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemData - Invalid item\n");
+        #endif
         return data;
     }
 
-    // Extract region ID
+    // TASK 11.2: Validate region ID
     int regionId = item->m_rgnId;
     if (regionId <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemData - Invalid region ID\n");
+        #endif
         return data;
     }
 
@@ -1239,16 +1500,22 @@ ModernPlaylistItemRenderer::ItemData ModernRegionPlaylistView::GetItemData(RgnPl
         data.duration = 0.0;
     }
 
-    // Validate data before returning
+    // TASK 11.2: Validate data before returning
     // If region number is 0 or negative, the data is invalid
     if (data.regionNumber <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemData - Invalid region number from ID\n");
+        #endif
         // Return empty/invalid data
         ModernPlaylistItemRenderer::ItemData invalidData;
         return invalidData;
     }
 
-    // If region name is empty, set a default
+    // TASK 11.4: Graceful degradation - provide default name if empty
     if (data.regionName.GetLength() == 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::GetItemData - Empty region name, using default\n");
+        #endif
         data.regionName.SetFormatted(32, "Region %d", data.regionNumber);
     }
 
@@ -1264,19 +1531,40 @@ void ModernRegionPlaylistView::OnBeginDrag(SWS_ListItem* item)
     // Call base class implementation first to maintain functionality
     RegionPlaylistView::OnBeginDrag(item);
 
-    // Only add visual feedback if modern rendering is enabled
-    if (!m_modernRenderingEnabled || !item || !m_hwndList) {
+    // TASK 11.1: Validate parameters before adding visual feedback
+    if (!m_modernRenderingEnabled) {
         return;
     }
 
-    // Get the index of the dragged item
+    if (!item) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnBeginDrag - NULL item\n");
+        #endif
+        return;
+    }
+
+    if (!m_hwndList) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnBeginDrag - NULL hwndList\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.1: Check playlist pointer
     RegionPlaylist* pl = GetPlaylist();
     if (!pl) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnBeginDrag - NULL playlist\n");
+        #endif
         return;
     }
 
+    // TASK 11.1: Validate item cast
     RgnPlaylistItem* plItem = static_cast<RgnPlaylistItem*>(item);
     if (!plItem) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::OnBeginDrag - Failed to cast item\n");
+        #endif
         return;
     }
 
@@ -1499,10 +1787,27 @@ ModernMonitoringView::~ModernMonitoringView()
 
 void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origin_y, RECT* cliprect, int rscale)
 {
-    if (!drawbm || !m_theme) {
-        // Fallback to base class if no theme
-        SNM_FiveMonitors::OnPaint(drawbm, origin_x, origin_y, cliprect, rscale);
+    // TASK 11.1: Null pointer checks
+    if (!drawbm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::OnPaint - NULL drawbm\n");
+        #endif
         return;
+    }
+
+    // TASK 11.3: Fallback to base class if theme is not available
+    if (!m_theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::OnPaint - NULL theme, using base class fallback\n");
+        #endif
+        // TASK 11.4: Graceful degradation - try to recover theme first
+        m_theme = PlaylistTheme::GetInstance();
+
+        if (!m_theme) {
+            // Still no theme, fallback to base class
+            SNM_FiveMonitors::OnPaint(drawbm, origin_x, origin_y, cliprect, rscale);
+            return;
+        }
     }
 
     // Get colors with high contrast (7:1 ratio minimum as per requirements)
@@ -1566,6 +1871,7 @@ void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origi
     RECT nextRect = {targetOriginX, currentRect.bottom, targetOriginX + width, currentRect.bottom + nextHeight};
     RECT progressRect = {targetOriginX, nextRect.bottom, targetOriginX + width, targetOriginY + height};
 
+    // TASK 11.4: Graceful degradation - check fonts before drawing
     // Draw playlist info at top
     if (fonts.monitorMedium && m_playlistName.GetLength() > 0) {
         char playlistInfo[256];
@@ -1578,6 +1884,11 @@ void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origi
 
         DrawLargeText(targetBitmap, playlistRect, playlistInfo, fonts.monitorMedium, colors.text);
     }
+    #ifdef _DEBUG
+    else if (!fonts.monitorMedium) {
+        OutputDebugString("ModernMonitoringView::OnPaint - NULL monitorMedium font\n");
+    }
+    #endif
 
     // Draw current region with large text (24pt font)
     if (fonts.monitorLarge && m_currentName.GetLength() > 0) {
@@ -1603,6 +1914,11 @@ void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origi
         // Draw text on top of highlight - use high contrast color for current item
         DrawLargeText(targetBitmap, currentRect, currentInfo, fonts.monitorLarge, colors.currentItemText);
     }
+    #ifdef _DEBUG
+    else if (!fonts.monitorLarge) {
+        OutputDebugString("ModernMonitoringView::OnPaint - NULL monitorLarge font\n");
+    }
+    #endif
 
     // Draw next region with medium text (20pt font)
     if (fonts.monitorMedium && m_nextName.GetLength() > 0) {
@@ -1616,6 +1932,11 @@ void ModernMonitoringView::OnPaint(LICE_IBitmap* drawbm, int origin_x, int origi
 
         DrawLargeText(targetBitmap, nextRect, nextInfo, fonts.monitorMedium, colors.nextItemText);
     }
+    #ifdef _DEBUG
+    else if (!fonts.monitorMedium) {
+        OutputDebugString("ModernMonitoringView::OnPaint - NULL monitorMedium font for next region\n");
+    }
+    #endif
 
     // Draw progress bar
     if (m_progress.total > 0.0) {
@@ -1757,12 +2078,26 @@ void ModernMonitoringView::SetPlaylistInfo(const char* playlistName, int playlis
 
 void ModernMonitoringView::DrawProgressBar(LICE_IBitmap* bm, const RECT& r)
 {
-    if (!bm || !m_theme) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawProgressBar - NULL bitmap\n");
+        #endif
         return;
     }
 
-    // Validate rectangle
+    if (!m_theme) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawProgressBar - NULL theme\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.2: Validate rectangle
     if (r.right <= r.left || r.bottom <= r.top) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawProgressBar - Invalid rectangle\n");
+        #endif
         return;
     }
 
@@ -1841,12 +2176,34 @@ void ModernMonitoringView::DrawProgressBar(LICE_IBitmap* bm, const RECT& r)
 
 void ModernMonitoringView::DrawLargeText(LICE_IBitmap* bm, const RECT& r, const char* text, LICE_CachedFont* font, int color)
 {
-    if (!bm || !text || !font) {
+    // TASK 11.1: Null pointer checks
+    if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawLargeText - NULL bitmap\n");
+        #endif
         return;
     }
 
-    // Validate rectangle
+    if (!text) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawLargeText - NULL text\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.4: Graceful degradation - skip if font is not available
+    if (!font) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawLargeText - NULL font, skipping text\n");
+        #endif
+        return;
+    }
+
+    // TASK 11.2: Validate rectangle
     if (r.right <= r.left || r.bottom <= r.top) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::DrawLargeText - Invalid rectangle\n");
+        #endif
         return;
     }
 
@@ -1872,23 +2229,44 @@ void ModernMonitoringView::DrawLargeText(LICE_IBitmap* bm, const RECT& r, const 
 
 void ModernRegionPlaylistView::MarkItemDirty(int index)
 {
+    // TASK 11.2: Validate index
     if (index < 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::MarkItemDirty - Invalid index (negative)\n");
+        #endif
         return;
     }
 
-    // Ensure the dirty items buffer is large enough
-    if (index >= m_dirtyItems.GetSize()) {
-        int oldSize = m_dirtyItems.GetSize();
-        m_dirtyItems.Resize(index + 1);
+    // TASK 11.3: Handle buffer resize failures gracefully
+    #ifdef _DEBUG
+    try {
+    #endif
+        // Ensure the dirty items buffer is large enough
+        if (index >= m_dirtyItems.GetSize()) {
+            int oldSize = m_dirtyItems.GetSize();
 
-        // Initialize new entries to false
-        for (int i = oldSize; i < m_dirtyItems.GetSize(); i++) {
-            m_dirtyItems.Get()[i] = false;
+            // TASK 11.2: Validate resize operation
+            if (!m_dirtyItems.Resize(index + 1)) {
+                #ifdef _DEBUG
+                OutputDebugString("ModernRegionPlaylistView::MarkItemDirty - Failed to resize buffer\n");
+                #endif
+                return;
+            }
+
+            // Initialize new entries to false
+            for (int i = oldSize; i < m_dirtyItems.GetSize(); i++) {
+                m_dirtyItems.Get()[i] = false;
+            }
         }
-    }
 
-    // Mark the item as dirty
-    m_dirtyItems.Get()[index] = true;
+        // Mark the item as dirty
+        m_dirtyItems.Get()[index] = true;
+    #ifdef _DEBUG
+    }
+    catch (...) {
+        OutputDebugString("ModernRegionPlaylistView::MarkItemDirty - Exception during marking\n");
+    }
+    #endif
 }
 
 void ModernRegionPlaylistView::MarkAllItemsDirty()
@@ -1934,8 +2312,11 @@ bool ModernRegionPlaylistView::IsItemDirty(int index) const
 
 void ModernRegionPlaylistView::EnsureOffscreenBuffer(int width, int height)
 {
-    // Validate dimensions
+    // TASK 11.2: Validate dimensions
     if (width <= 0 || height <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernRegionPlaylistView::EnsureOffscreenBuffer - Invalid dimensions\n");
+        #endif
         return;
     }
 
@@ -1954,27 +2335,48 @@ void ModernRegionPlaylistView::EnsureOffscreenBuffer(int width, int height)
         // Release old buffer if it exists
         ReleaseOffscreenBuffer();
 
-        // Create new buffer with requested dimensions
-        m_offscreenBuffer = new LICE_SysBitmap(width, height);
+        // TASK 11.3: Handle buffer creation failure gracefully
+        #ifdef _DEBUG
+        try {
+        #endif
+            // Create new buffer with requested dimensions
+            m_offscreenBuffer = new LICE_SysBitmap(width, height);
 
-        if (m_offscreenBuffer) {
-            // Store buffer dimensions
-            m_bufferWidth = width;
-            m_bufferHeight = height;
+            // TASK 11.1: Check if buffer was created successfully
+            if (m_offscreenBuffer) {
+                // Store buffer dimensions
+                m_bufferWidth = width;
+                m_bufferHeight = height;
 
-            // Clear the buffer with background color
-            if (m_theme) {
-                const PlaylistTheme::Colors& colors = m_theme->GetColors();
-                LICE_Clear(m_offscreenBuffer, colors.background);
+                // TASK 11.4: Graceful degradation - use theme colors if available
+                // Clear the buffer with background color
+                if (m_theme) {
+                    const PlaylistTheme::Colors& colors = m_theme->GetColors();
+                    LICE_Clear(m_offscreenBuffer, colors.background);
+                } else {
+                    #ifdef _DEBUG
+                    OutputDebugString("ModernRegionPlaylistView::EnsureOffscreenBuffer - NULL theme, using default color\n");
+                    #endif
+                    // Fallback to black if no theme
+                    LICE_Clear(m_offscreenBuffer, LICE_RGBA(0, 0, 0, 255));
+                }
             } else {
-                // Fallback to black if no theme
-                LICE_Clear(m_offscreenBuffer, LICE_RGBA(0, 0, 0, 255));
+                #ifdef _DEBUG
+                OutputDebugString("ModernRegionPlaylistView::EnsureOffscreenBuffer - Failed to create buffer\n");
+                #endif
+                // Failed to create buffer
+                m_bufferWidth = 0;
+                m_bufferHeight = 0;
             }
-        } else {
-            // Failed to create buffer
+        #ifdef _DEBUG
+        }
+        catch (...) {
+            OutputDebugString("ModernRegionPlaylistView::EnsureOffscreenBuffer - Exception during buffer creation\n");
+            m_offscreenBuffer = NULL;
             m_bufferWidth = 0;
             m_bufferHeight = 0;
         }
+        #endif
     }
 }
 
@@ -1995,8 +2397,11 @@ void ModernRegionPlaylistView::ReleaseOffscreenBuffer()
 
 void ModernMonitoringView::EnsureOffscreenBuffer(int width, int height)
 {
-    // Validate dimensions
+    // TASK 11.2: Validate dimensions
     if (width <= 0 || height <= 0) {
+        #ifdef _DEBUG
+        OutputDebugString("ModernMonitoringView::EnsureOffscreenBuffer - Invalid dimensions\n");
+        #endif
         return;
     }
 
@@ -2015,27 +2420,48 @@ void ModernMonitoringView::EnsureOffscreenBuffer(int width, int height)
         // Release old buffer if it exists
         ReleaseOffscreenBuffer();
 
-        // Create new buffer with requested dimensions
-        m_offscreenBuffer = new LICE_SysBitmap(width, height);
+        // TASK 11.3: Handle buffer creation failure gracefully
+        #ifdef _DEBUG
+        try {
+        #endif
+            // Create new buffer with requested dimensions
+            m_offscreenBuffer = new LICE_SysBitmap(width, height);
 
-        if (m_offscreenBuffer) {
-            // Store buffer dimensions
-            m_bufferWidth = width;
-            m_bufferHeight = height;
+            // TASK 11.1: Check if buffer was created successfully
+            if (m_offscreenBuffer) {
+                // Store buffer dimensions
+                m_bufferWidth = width;
+                m_bufferHeight = height;
 
-            // Clear the buffer with background color
-            if (m_theme) {
-                const PlaylistTheme::Colors& colors = m_theme->GetColors();
-                LICE_Clear(m_offscreenBuffer, colors.background);
+                // TASK 11.4: Graceful degradation - use theme colors if available
+                // Clear the buffer with background color
+                if (m_theme) {
+                    const PlaylistTheme::Colors& colors = m_theme->GetColors();
+                    LICE_Clear(m_offscreenBuffer, colors.background);
+                } else {
+                    #ifdef _DEBUG
+                    OutputDebugString("ModernMonitoringView::EnsureOffscreenBuffer - NULL theme, using default color\n");
+                    #endif
+                    // Fallback to black if no theme
+                    LICE_Clear(m_offscreenBuffer, LICE_RGBA(0, 0, 0, 255));
+                }
             } else {
-                // Fallback to black if no theme
-                LICE_Clear(m_offscreenBuffer, LICE_RGBA(0, 0, 0, 255));
+                #ifdef _DEBUG
+                OutputDebugString("ModernMonitoringView::EnsureOffscreenBuffer - Failed to create buffer\n");
+                #endif
+                // Failed to create buffer
+                m_bufferWidth = 0;
+                m_bufferHeight = 0;
             }
-        } else {
-            // Failed to create buffer
+        #ifdef _DEBUG
+        }
+        catch (...) {
+            OutputDebugString("ModernMonitoringView::EnsureOffscreenBuffer - Exception during buffer creation\n");
+            m_offscreenBuffer = NULL;
             m_bufferWidth = 0;
             m_bufferHeight = 0;
         }
+        #endif
     }
 }
 

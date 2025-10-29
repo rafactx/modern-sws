@@ -66,6 +66,30 @@ public:
         LICE_CachedFont* monitorMedium; // 20pt
     };
 
+    // Font size tracking for cache invalidation
+    struct FontSizes {
+        int itemName;
+        int itemNumber;
+        int itemTime;
+        int monitorLarge;
+        int monitorMedium;
+
+        FontSizes() : itemName(12), itemNumber(14), itemTime(11),
+                      monitorLarge(24), monitorMedium(20) {}
+
+        bool operator==(const FontSizes& other) const {
+            return itemName == other.itemName &&
+                   itemNumber == other.itemNumber &&
+                   itemTime == other.itemTime &&
+                   monitorLarge == other.monitorLarge &&
+                   monitorMedium == other.monitorMedium;
+        }
+
+        bool operator!=(const FontSizes& other) const {
+            return !(*this == other);
+        }
+    };
+
     // Singleton access
     static PlaylistTheme* GetInstance();
 
@@ -95,10 +119,12 @@ private:
     void LoadDefaultLightTheme();
     void LoadCustomThemeFromINI();
     void InitializeFonts();
+    void InitializeFontsWithSizes(const FontSizes& sizes);
     void CleanupFonts();
 
     Colors m_colors;
     Fonts m_fonts;
+    FontSizes m_fontSizes;
     bool m_isDark;
 
     static PlaylistTheme* s_instance;

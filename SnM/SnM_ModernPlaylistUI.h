@@ -195,6 +195,27 @@ private:
     LICE_IBitmap* m_dragGhostBitmap;
     POINT m_dragStartPos;
     POINT m_dragCurrentPos;
+
+    // Dirty region tracking for performance optimization
+    WDL_TypedBuf<bool> m_dirtyItems;  // Track which items need repainting
+    bool m_fullRepaintNeeded;         // Flag for full list repaint
+    int m_lastPlayingItem;            // Track last playing item for dirty detection
+    int m_lastNextItem;               // Track last next item for dirty detection
+
+    // Double buffering for flicker-free rendering
+    LICE_IBitmap* m_offscreenBuffer;  // Off-screen buffer for double buffering
+    int m_bufferWidth;                // Current buffer width
+    int m_bufferHeight;               // Current buffer height
+
+    // Dirty region management
+    void MarkItemDirty(int index);
+    void MarkAllItemsDirty();
+    void ClearDirtyFlags();
+    bool IsItemDirty(int index) const;
+
+    // Double buffering management
+    void EnsureOffscreenBuffer(int width, int height);
+    void ReleaseOffscreenBuffer();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -226,6 +247,8 @@ private:
 
     void DrawProgressBar(LICE_IBitmap* bm, const RECT& r);
     void DrawLargeText(LICE_IBitmap* bm, const RECT& r, const char* text, LICE_CachedFont* font, int color);
+    void EnsureOffscreenBuffer(int width, int height);
+    void ReleaseOffscreenBuffer();
 
     ProgressInfo m_progress;
     WDL_FastString m_currentName;
@@ -235,6 +258,11 @@ private:
     int m_nextNumber;
     int m_playlistNumber;
     PlaylistTheme* m_theme;
+
+    // Double buffering for flicker-free rendering
+    LICE_IBitmap* m_offscreenBuffer;
+    int m_bufferWidth;
+    int m_bufferHeight;
 };
 
 #endif // _SNM_MODERNPLAYLISTUI_H_

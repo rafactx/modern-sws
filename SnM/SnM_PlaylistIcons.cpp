@@ -62,17 +62,26 @@ void PlaylistIconManager::DestroyInstance()
 
 LICE_IBitmap* PlaylistIconManager::GetIcon(IconType type, int size)
 {
+    // TASK 11.2: Validate icon type
     if (type < 0 || type >= ICON_TYPE_COUNT) {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::GetIcon - Invalid icon type\n");
+        #endif
         return NULL;
     }
 
-    // Validate size
+    // TASK 11.2: Validate and clamp size
     if (size < 8 || size > 128) {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::GetIcon - Invalid size, using default\n");
+        #endif
         size = 16; // Default to 16x16
     }
 
     // Check cache
     int key = GetCacheKey(type, size);
+
+    // TASK 11.1: Validate cache entries before accessing
     for (int i = 0; i < m_iconCache.GetSize(); i++) {
         CacheEntry* entry = m_iconCache.Get(i);
         if (entry && entry->key == key && entry->bitmap) {
@@ -80,13 +89,36 @@ LICE_IBitmap* PlaylistIconManager::GetIcon(IconType type, int size)
         }
     }
 
+    // TASK 11.3: Handle icon generation failure gracefully
     // Generate icon if not in cache
     LICE_IBitmap* icon = GenerateIcon(type, size);
     if (icon) {
-        CacheEntry* entry = new CacheEntry();
-        entry->key = key;
-        entry->bitmap = icon;
-        m_iconCache.Add(entry);
+        // TASK 11.3: Handle cache entry creation failure
+        #ifdef _DEBUG
+        try {
+        #endif
+            CacheEntry* entry = new CacheEntry();
+            if (entry) {
+                entry->key = key;
+                entry->bitmap = icon;
+                m_iconCache.Add(entry);
+            } else {
+                #ifdef _DEBUG
+                OutputDebugString("PlaylistIconManager::GetIcon - Failed to create cache entry\n");
+                #endif
+                // Still return the icon even if caching failed
+            }
+        #ifdef _DEBUG
+        }
+        catch (...) {
+            OutputDebugString("PlaylistIconManager::GetIcon - Exception during cache entry creation\n");
+            // Still return the icon even if caching failed
+        }
+        #endif
+    } else {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::GetIcon - Failed to generate icon\n");
+        #endif
     }
 
     return icon;
@@ -94,10 +126,15 @@ LICE_IBitmap* PlaylistIconManager::GetIcon(IconType type, int size)
 
 void PlaylistIconManager::DrawIcon(LICE_IBitmap* dest, IconType type, int x, int y, int size, int color)
 {
+    // TASK 11.1: Null pointer check
     if (!dest) {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::DrawIcon - NULL destination bitmap\n");
+        #endif
         return;
     }
 
+    // TASK 11.1: Check if icon is available
     LICE_IBitmap* icon = GetIcon(type, size);
     if (icon) {
         if (color == -1) {
@@ -108,6 +145,13 @@ void PlaylistIconManager::DrawIcon(LICE_IBitmap* dest, IconType type, int x, int
             LICE_Blit(dest, icon, x, y, 0, 0, size, size, 1.0f, LICE_BLIT_MODE_COPY | LICE_BLIT_USE_ALPHA);
             // TODO: Implement color tinting if needed
         }
+    } else {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::DrawIcon - Failed to get icon\n");
+        #endif
+        // TASK 11.4: Graceful degradation - draw a simple placeholder
+        // Draw a small rectangle as fallback
+        LICE_FillRect(dest, x, y, size, size, LICE_RGBA(128, 128, 128, 255), 0.5f, LICE_BLIT_MODE_COPY);
     }
 }
 
@@ -127,39 +171,61 @@ void PlaylistIconManager::ClearCache()
 
 LICE_IBitmap* PlaylistIconManager::GenerateIcon(IconType type, int size)
 {
+    // TASK 11.3: Handle bitmap creation failure
     LICE_IBitmap* bm = new LICE_MemBitmap(size, size);
     if (!bm) {
+        #ifdef _DEBUG
+        OutputDebugString("PlaylistIconManager::GenerateIcon - Failed to create bitmap\n");
+        #endif
         return NULL;
     }
 
-    // Clear bitmap with transparent background
-    LICE_Clear(bm, LICE_RGBA(0, 0, 0, 0));
+    // TASK 11.3: Use try-catch for icon generation
+    #ifdef _DEBUG
+    try {
+    #endif
+        // Clear bitmap with transparent background
+        LICE_Clear(bm, LICE_RGBA(0, 0, 0, 0));
 
-    // Default color (white)
-    int color = LICE_RGBA(255, 255, 255, 255);
+        // Default color (white)
+        int color = LICE_RGBA(255, 255, 255, 255);
 
-    // Generate specific icon
-    switch (type) {
-        case ICON_PLAY:
-            GeneratePlayIcon(bm, size, color);
-            break;
-        case ICON_NEXT:
-            GenerateNextIcon(bm, size, color);
-            break;
-        case ICON_WARNING:
-            GenerateWarningIcon(bm, size, color);
-            break;
-        case ICON_LOOP_INFINITE:
-            GenerateLoopInfiniteIcon(bm, size, color);
-            break;
-        case ICON_SYNC_LOSS:
-            GenerateSyncLossIcon(bm, size, color);
-            break;
-        default:
-            break;
+        // Generate specific icon
+        switch (type) {
+            case ICON_PLAY:
+                GeneratePlayIcon(bm, size, color);
+                break;
+            case ICON_NEXT:
+                GenerateNextIcon(bm, size, color);
+                break;
+            case ICON_WARNING:
+                GenerateWarningIcon(bm, size, color);
+                break;
+            case ICON_LOOP_INFINITE:
+                GenerateLoopInfiniteIcon(bm, size, color);
+                break;
+            case ICON_SYNC_LOSS:
+                GenerateSyncLossIcon(bm, size, color);
+                break;
+            default:
+                #ifdef _DEBUG
+                OutputDebugString("PlaylistIconManager::GenerateIcon - Unknown icon type\n");
+                #endif
+                break;
+        }
+
+        return bm;
+    #ifdef _DEBUG
     }
-
-    return bm;
+    catch (...) {
+        OutputDebugString("PlaylistIconManager::GenerateIcon - Exception during icon generation\n");
+        // Clean up bitmap on failure
+        if (bm) {
+            delete bm;
+        }
+        return NULL;
+    }
+    #endif
 }
 
 void PlaylistIconManager::GeneratePlayIcon(LICE_IBitmap* bm, int size, int color)
