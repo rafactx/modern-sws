@@ -61,6 +61,19 @@ public:
             , loopCount(1)
             , isSyncLoss(false)
         {}
+
+        // Validation
+        bool IsValid() const {
+            return loopCount >= 0; // Loop count should never be negative
+        }
+
+        bool HasAnyHighlight() const {
+            return isPlaying || isNext || isSelected || isHovered;
+        }
+
+        bool NeedsStatusIcon() const {
+            return isPlaying || isNext || isSyncLoss;
+        }
     };
 
     // Data for rendering an item
@@ -77,6 +90,22 @@ public:
             , endTime(0.0)
             , duration(0.0)
         {}
+
+        // Validation
+        bool IsValid() const {
+            return regionNumber > 0 &&
+                   duration >= 0.0 &&
+                   endTime >= startTime &&
+                   regionName.GetLength() > 0;
+        }
+
+        bool HasValidTiming() const {
+            return startTime >= 0.0 && endTime >= startTime;
+        }
+
+        bool IsShortRegion() const {
+            return duration < 0.5; // Less than 0.5 seconds
+        }
     };
 
     ModernPlaylistItemRenderer();
