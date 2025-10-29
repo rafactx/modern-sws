@@ -30,6 +30,7 @@
 
 #include "../WDL/lice/lice.h"
 #include "../WDL/ptrlist.h"
+#include "../WDL/assocarray.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // PlaylistIconManager - Manages icons for playlist UI
@@ -49,6 +50,7 @@ public:
 
     // Singleton access
     static PlaylistIconManager* GetInstance();
+    static void DestroyInstance();
 
     // Icon access
     LICE_IBitmap* GetIcon(IconType type, int size = 16);
@@ -66,7 +68,7 @@ private:
     PlaylistIconManager& operator=(const PlaylistIconManager&);
 
     // Icon generation
-    void GenerateIcon(IconType type, int size);
+    LICE_IBitmap* GenerateIcon(IconType type, int size);
     void GeneratePlayIcon(LICE_IBitmap* bm, int size, int color);
     void GenerateNextIcon(LICE_IBitmap* bm, int size, int color);
     void GenerateWarningIcon(LICE_IBitmap* bm, int size, int color);
@@ -76,7 +78,13 @@ private:
     // Cache key generation
     int GetCacheKey(IconType type, int size) const;
 
-    WDL_PtrList<LICE_IBitmap> m_iconCache;
+    // Cache entry structure
+    struct CacheEntry {
+        int key;
+        LICE_IBitmap* bitmap;
+    };
+
+    WDL_PtrList<CacheEntry> m_iconCache;
 
     static PlaylistIconManager* s_instance;
 };

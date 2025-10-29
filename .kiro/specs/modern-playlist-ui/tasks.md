@@ -31,32 +31,32 @@
   - Provide fallback to default colors if custom not found
   - _Requirements: 5.1, 5.2_
 
-- [ ] 3. Implement PlaylistIconManager
-- [ ] 3.1 Create icon manager singleton class
+- [x] 3. Implement PlaylistIconManager
+- [x] 3.1 Create icon manager singleton class
   - Define IconType enum (PLAY, NEXT, WARNING, LOOP_INFINITE, SYNC_LOSS)
   - Implement icon caching system using WDL_PtrList
   - Create GetIcon() and DrawIcon() methods
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 3.2 Generate play icon programmatically
+- [x] 3.2 Generate play icon programmatically
   - Draw triangle play symbol using LICE drawing functions
   - Support multiple sizes (16x16, 24x24, 32x32)
   - Allow color customization
   - _Requirements: 2.1_
 
-- [ ] 3.3 Generate next/queue icon programmatically
+- [x] 3.3 Generate next/queue icon programmatically
   - Draw circle or forward arrow symbol
   - Support multiple sizes
   - Allow color customization
   - _Requirements: 2.2_
 
-- [ ] 3.4 Generate warning and sync loss icons
+- [x] 3.4 Generate warning and sync loss icons
   - Draw exclamation mark for warning
   - Draw red X or alert symbol for sync loss
   - Support multiple sizes
   - _Requirements: 2.5_
 
-- [ ] 3.5 Generate infinity loop icon
+- [x] 3.5 Generate infinity loop icon
   - Draw infinity symbol (∞) using LICE curves or text
   - Support multiple sizes
   - Allow color customization
