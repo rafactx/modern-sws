@@ -7,6 +7,7 @@ PRIVATE
   SnM_Cyclactions.cpp
   SnM_Dlg.cpp
   SnM_Find.cpp
+  SnM_FullscreenSetlist.cpp
   SnM_FX.cpp
   SnM_FXChain.cpp
   SnM_Item.cpp

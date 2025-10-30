@@ -99,6 +99,274 @@ private:
     void CleanupFonts();
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// SetlistView - Scrollable list of setlist items
+///////////////////////////////////////////////////////////////////////////////
+
+class SetlistView {
+public:
+    // SetlistItem structure
+    struct SetlistItem {
+        int number;              // Song number in setlist
+        char name[256];          // Song name
+        double duration;         // Duration in seconds
+        bool isPlaying;          // Currently playing
+        bool isNext;             // Next to play
+        bool isSelected;         // Selected by user
+        int regionIndex;         // REAPER region index
+    };
+
+    SetlistView(RECT bounds);
+    ~SetlistView();
+
+    // Data management
+    void SetItems(const WDL_TypedBuf<SetlistItem>& items);
+    int GetItemCount() const { return m_items.GetSize(); }
+    const SetlistItem* GetItem(int index) const;
+
+    // Selection
+    void SetSelectedIndex(int index);
+    int GetSelectedIndex() const { return m_selectedIndex; }
+
+    // Scrolling
+    void ScrollToIndex(int index);
+    void ScrollBy(int delta);
+    void EnsureVisible(int index);
+    int GetScrollOffset() const { return m_scrollOffset; }
+
+    // Hit testing
+    int GetItemAtPoint(int x, int y) const;
+
+    // Layout
+    void SetBounds(RECT bounds);
+    RECT GetBounds() const { return m_bounds; }
+
+    // Rendering
+    void Draw(LICE_IBitmap* bm, FullscreenTheme* theme);
+
+private:
+    RECT m_bounds;
+    WDL_TypedBuf<SetlistItem> m_items;
+    int m_selectedIndex;
+    int m_scrollOffset;          // Scroll position in pixels
+    int m_itemHeight;            // Height of each item in pixels
+
+    void CalculateLayout();
+    void DrawScrollbar(LICE_IBitmap* bm, FullscreenTheme* theme);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// KeyboardController - Handles keyboard input
+///////////////////////////////////////////////////////////////////////////////
+
+class KeyboardController {
+public:
+    // Action enum
+    enum Action {
+        ACTION_NONE = 0,
+        ACTION_SELECT_NEXT,
+        ACTION_SELECT_PREVIOUS,
+        ACTION_PLAY_SELECTED,
+        ACTION_TOGGLE_PLAY_PAUSE,
+        ACTION_EXIT_FULLSCREEN,
+        ACTION_PAGE_UP,
+        ACTION_PAGE_DOWN,
+        ACTION_JUMP_FIRST,
+        ACTION_JUMP_LAST,
+        ACTION_JUMP_TO_NUMBER,
+        ACTION_PLAY_NEXT,
+        ACTION_PLAY_PREVIOUS
+    };
+
+    KeyboardController();
+    ~KeyboardController();
+
+    // Key processing
+    Action ProcessKey(WPARAM key, LPARAM lParam);
+    Action MapKeyToAction(WPARAM key);
+
+    // Number buffer for jump-to-number
+    void SetNumberBuffer(int number) { m_numberBuffer = number; }
+    int GetNumberBuffer() const { return m_numberBuffer; }
+    void ClearNumberBuffer() { m_numberBuffer = 0; }
+
+private:
+    int m_numberBuffer;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// TransportPanel - Transport controls at bottom
+///////////////////////////////////////////////////////////////////////////////
+
+class TransportPanel {
+public:
+    // Button enum
+    enum Button {
+        BTN_PREVIOUS = 0,
+        BTN_PLAY_STOP,
+        BTN_NEXT,
+        BTN_COUNT
+    };
+
+    TransportPanel(RECT bounds);
+    ~TransportPanel();
+
+    // Layout
+    void SetBounds(RECT bounds);
+    RECT GetBounds() const { return m_bounds; }
+
+    // State
+    void SetIsPlaying(bool isPlaying) { m_isPlaying = isPlaying; }
+    void SetTotalDuration(double duration) { m_totalDuration = duration; }
+    void SetHoveredButton(Button btn) { m_hoveredButton = btn; }
+    void SetPressedButton(Button btn) { m_pressedButton = btn; }
+
+    // Hit testing
+    Button GetButtonAtPoint(int x, int y) const;
+
+    // Rendering
+    void Draw(LICE_IBitmap* bm, FullscreenTheme* theme);
+
+private:
+    RECT m_bounds;
+    bool m_isPlaying;
+    double m_totalDuration;
+    Button m_hoveredButton;
+    Button m_pressedButton;
+    RECT m_buttonRects[BTN_COUNT];
+
+    void CalculateLayout();
+    void DrawButton(LICE_IBitmap* bm, Button btn, FullscreenTheme* theme);
+    void DrawTotalTime(LICE_IBitmap* bm, FullscreenTheme* theme);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// NowPlayingPanel - Shows currently playing song info
+///////////////////////////////////////////////////////////////////////////////
+
+class NowPlayingPanel {
+public:
+    // NowPlayingInfo structure
+    struct NowPlayingInfo {
+        char songName[256];      // Current song name
+        double currentTime;      // Current playback time in seconds
+        double totalTime;        // Total song duration in seconds
+        double progress;         // Progress 0.0-1.0
+        bool isPlaying;          // Is currently playing
+    };
+
+    NowPlayingPanel(RECT bounds);
+    ~NowPlayingPanel();
+
+    // Data management
+    void SetInfo(const NowPlayingInfo& info);
+    const NowPlayingInfo& GetInfo() const { return m_info; }
+
+    // Layout
+    void SetBounds(RECT bounds);
+    RECT GetBounds() const { return m_bounds; }
+
+    // Rendering
+    void Draw(LICE_IBitmap* bm, FullscreenTheme* theme);
+
+private:
+    RECT m_bounds;
+    NowPlayingInfo m_info;
+
+    void DrawPlayIcon(LICE_IBitmap* bm, FullscreenTheme* theme);
+    void DrawSongName(LICE_IBitmap* bm, FullscreenTheme* theme);
+    void DrawTimeInfo(LICE_IBitmap* bm, FullscreenTheme* theme);
+    void DrawProgressBar(LICE_IBitmap* bm, FullscreenTheme* theme);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// SetlistItemRenderer - Renders individual setlist items
+///////////////////////////////////////////////////////////////////////////////
+
+class SetlistItemRenderer {
+public:
+    static void DrawItem(
+        LICE_IBitmap* bm,
+        const SetlistView::SetlistItem& item,
+        RECT itemRect,
+        FullscreenTheme* theme
+    );
+
+private:
+    static void DrawBackground(LICE_IBitmap* bm, RECT rect, const SetlistView::SetlistItem& item, FullscreenTheme* theme);
+    static void DrawStatusIcon(LICE_IBitmap* bm, RECT rect, const SetlistView::SetlistItem& item, FullscreenTheme* theme);
+    static void DrawNumber(LICE_IBitmap* bm, RECT rect, const SetlistView::SetlistItem& item, FullscreenTheme* theme);
+    static void DrawSongName(LICE_IBitmap* bm, RECT rect, const SetlistView::SetlistItem& item, FullscreenTheme* theme);
+    static void DrawDuration(LICE_IBitmap* bm, RECT rect, const SetlistView::SetlistItem& item, FullscreenTheme* theme);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// FullscreenSetlistWindow - Main window class
+///////////////////////////////////////////////////////////////////////////////
+
+class FullscreenSetlistWindow {
+public:
+    FullscreenSetlistWindow();
+    ~FullscreenSetlistWindow();
+
+    // Window management
+    void Show();
+    void Hide();
+    void ToggleFullscreen();
+    bool IsFullscreen() const { return m_isFullscreen; }
+    bool IsVisible() const { return m_hwnd && IsWindowVisible(m_hwnd); }
+
+    // Setlist integration
+    void LoadSetlist(int playlistIndex);
+    void RefreshFromSWS();
+
+    // Playback control
+    void PlaySelected();
+    void PlayNext();
+    void PlayPrevious();
+    void Stop();
+    void TogglePlayPause();
+
+    // Navigation
+    void SelectNext();
+    void SelectPrevious();
+    void SelectItem(int index);
+    void ScrollToItem(int index);
+    void JumpToFirst();
+    void JumpToLast();
+
+private:
+    HWND m_hwnd;
+    NowPlayingPanel* m_nowPlayingPanel;
+    SetlistView* m_setlistView;
+    TransportPanel* m_transportPanel;
+    KeyboardController* m_keyboardController;
+    FullscreenTheme* m_theme;
+
+    int m_currentPlaylistIndex;
+    int m_selectedItemIndex;
+    bool m_isFullscreen;
+    RECT m_savedWindowRect;  // For restoring from fullscreen
+    LONG m_savedWindowStyle;  // For restoring from fullscreen
+
+    // Window procedure
+    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+    // Event handlers
+    void OnPaint();
+    void OnKeyDown(WPARAM key);
+    void OnMouseMove(int x, int y);
+    void OnMouseClick(int x, int y);
+    void OnResize(int width, int height);
+
+    // Layout
+    void UpdateLayout();
+
+    // Helper methods
+    bool CreateMainWindow();
+    void DestroyMainWindow();
+};
+
 // Initialize fullscreen setlist system
 int FullscreenSetlistInit();
 
